@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 import { getMapById } from "@/lib/data/maps";
 import { cn } from "@/lib/utils";
 import type { SceneKind } from "@/lib/types/game";
@@ -26,8 +30,8 @@ function rng(seed: number) {
 }
 
 /**
- * Stylised top-down radar art. Generated from the map palette instead of
- * shipping screenshots, so it loads instantly and stays visually cohesive.
+ * SVG radar fallback — only used when the raster in /public/maps is missing.
+ * Uses xMidYMid slice (cover) so it never stretches.
  */
 function MapRadar({ mapId }: { mapId: string }) {
   const map = getMapById(mapId);
@@ -53,7 +57,7 @@ function MapRadar({ mapId }: { mapId: string }) {
   return (
     <svg
       viewBox="0 0 100 88"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid slice"
       className="h-full w-full"
       role="img"
       aria-label={`Radar de ${map.name}`}
@@ -110,7 +114,6 @@ function MapRadar({ mapId }: { mapId: string }) {
         />
       ))}
 
-      {/* Bomb sites */}
       <g>
         <rect
           x="12"
@@ -169,11 +172,29 @@ function MapRadar({ mapId }: { mapId: string }) {
   );
 }
 
+function MapRaster({ mapId, src }: { mapId: string; src: string }) {
+  const [failed, setFailed] = useState(false);
+  const map = getMapById(mapId);
+
+  if (failed) return <MapRadar mapId={mapId} />;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- local public asset with object-cover
+    <img
+      src={src}
+      alt={map ? `Radar de ${map.name}` : "Mapa"}
+      className="h-full w-full object-cover object-center"
+      onError={() => setFailed(true)}
+      draggable={false}
+    />
+  );
+}
+
 /* ------------------------------ scene backdrops ---------------------------- */
 
 function LockerRoom() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <rect width="100" height="88" fill="#141a22" />
       {[8, 26, 44, 62, 80].map((x) => (
         <g key={x}>
@@ -192,7 +213,7 @@ function LockerRoom() {
 
 function Arena() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <defs>
         <radialGradient id="arena-glow" cx="50%" cy="20%" r="80%">
           <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
@@ -219,7 +240,7 @@ function Arena() {
 
 function Bootcamp() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <rect width="100" height="88" fill="#10161e" />
       {[6, 30, 54, 78].map((x, index) => (
         <g key={x}>
@@ -236,7 +257,7 @@ function Bootcamp() {
 
 function StreamRoom() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <rect width="100" height="88" fill="#150f22" />
       <rect x="18" y="14" width="64" height="38" rx="2" fill="#0d0918" stroke="#a855f7" strokeOpacity="0.5" strokeWidth="0.8" />
       <rect x="22" y="18" width="56" height="30" fill="#2a1a45" fillOpacity="0.8" />
@@ -251,7 +272,7 @@ function StreamRoom() {
 
 function Presser() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <rect width="100" height="88" fill="#0e1520" />
       {Array.from({ length: 24 }, (_, i) => (
         <rect
@@ -276,7 +297,7 @@ function Presser() {
 
 function MarketFloor() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <rect width="100" height="88" fill="#0b1220" />
       {Array.from({ length: 14 }, (_, i) => (
         <rect
@@ -299,7 +320,7 @@ function MarketFloor() {
 
 function CaseScene() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
       <defs>
         <linearGradient id="case-bg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#1f2937" />
@@ -328,9 +349,14 @@ const SCENES: Record<Exclude<SceneKind, "map">, () => React.JSX.Element> = {
 };
 
 export function MapArt({ mapId, scene = "map", className }: MapArtProps) {
+  const map = mapId ? getMapById(mapId) : undefined;
   const content =
     scene === "map" && mapId ? (
-      <MapRadar mapId={mapId} />
+      map?.imagePath ? (
+        <MapRaster mapId={mapId} src={map.imagePath} />
+      ) : (
+        <MapRadar mapId={mapId} />
+      )
     ) : scene !== "map" ? (
       SCENES[scene]()
     ) : (
@@ -340,8 +366,8 @@ export function MapArt({ mapId, scene = "map", className }: MapArtProps) {
   return (
     <div className={cn("relative overflow-hidden", className)}>
       {content}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.16)_3px,rgba(0,0,0,0.16)_4px)] opacity-60" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.14)_3px,rgba(0,0,0,0.14)_4px)] opacity-50" />
     </div>
   );
 }

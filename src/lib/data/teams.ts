@@ -4,7 +4,13 @@ import type { Region, Team, Tier } from "@/lib/types/game";
  * Monthly budgets follow public 2026 industry estimates of roster salary spend
  * (Pley.gg / Fragster reporting). Tier 2-3 numbers use the widely reported
  * $1k-$5k per player band scaled to a five-man roster.
+ *
+ * logoPath: local SVG in /public/teams (HLTV CDN 403'd; stylised brand crests).
  */
+function logo(id: string): string {
+  return `/teams/${id}.svg`;
+}
+
 export const TEAMS: Team[] = [
   /* ------------------------------- tier 1 -------------------------------- */
   {
@@ -17,6 +23,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 260_000,
     colors: { primary: "#0BDA51", secondary: "#04150c" },
     blurb: "Presupuesto infinito y presión de ganar ya.",
+    logoPath: logo("falcons"),
   },
   {
     id: "vitality",
@@ -28,6 +35,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 230_000,
     colors: { primary: "#FFE500", secondary: "#111111" },
     blurb: "La abeja. Estructura de élite y ZywOo de referencia.",
+    logoPath: logo("vitality"),
   },
   {
     id: "spirit",
@@ -39,6 +47,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 140_000,
     colors: { primary: "#E8362A", secondary: "#101010" },
     blurb: "Fábrica de monstruos jóvenes. Agresión pura.",
+    logoPath: logo("spirit"),
   },
   {
     id: "navi",
@@ -50,6 +59,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 140_000,
     colors: { primary: "#FFE500", secondary: "#1a1a1a" },
     blurb: "El escudo amarillo. Historia y presión mediática.",
+    logoPath: logo("navi"),
   },
   {
     id: "faze",
@@ -61,6 +71,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 150_000,
     colors: { primary: "#E43D30", secondary: "#141414" },
     blurb: "Superteam internacional con foco en marca global.",
+    logoPath: logo("faze"),
   },
   {
     id: "mouz",
@@ -72,6 +83,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 130_000,
     colors: { primary: "#E4002B", secondary: "#0d0d0d" },
     blurb: "Academia legendaria: si sos joven, acá te pulen.",
+    logoPath: logo("mouz"),
   },
   {
     id: "g2",
@@ -83,6 +95,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 150_000,
     colors: { primary: "#F5003B", secondary: "#101010" },
     blurb: "Samurái. Fichajes caros y expectativa de Major.",
+    logoPath: logo("g2"),
   },
   {
     id: "liquid",
@@ -94,6 +107,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 160_000,
     colors: { primary: "#0043FF", secondary: "#0b0f1a" },
     blurb: "El caballo azul. Sueldos altos, resultados irregulares.",
+    logoPath: logo("liquid"),
   },
   {
     id: "furia",
@@ -105,6 +119,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 125_000,
     colors: { primary: "#000000", secondary: "#2b2b2b" },
     blurb: "La pantera brasileña. Caos calculado y torcida enorme.",
+    logoPath: logo("furia"),
   },
   {
     id: "mongolz",
@@ -116,6 +131,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 50_000,
     colors: { primary: "#C8102E", secondary: "#101010" },
     blurb: "Rinden mucho más de lo que gastan. Disciplina total.",
+    logoPath: logo("mongolz"),
   },
   {
     id: "astralis",
@@ -127,6 +143,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 105_000,
     colors: { primary: "#E4002B", secondary: "#111827" },
     blurb: "La dinastía danesa reconstruyéndose con jóvenes.",
+    logoPath: logo("astralis"),
   },
   {
     id: "aurora",
@@ -138,6 +155,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 80_000,
     colors: { primary: "#7C3AED", secondary: "#120b1f" },
     blurb: "Turco-CIS. Explosivos y con hinchada ruidosa.",
+    logoPath: logo("aurora"),
   },
   {
     id: "eternal-fire",
@@ -149,6 +167,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 85_000,
     colors: { primary: "#F97316", secondary: "#160c04" },
     blurb: "Turquía en llamas. XANTARES y presión local brutal.",
+    logoPath: logo("eternal-fire"),
   },
   {
     id: "pain",
@@ -160,6 +179,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 65_000,
     colors: { primary: "#DF2A34", secondary: "#0f0f0f" },
     blurb: "Clásico brasileño con resurgir competitivo.",
+    logoPath: logo("pain"),
   },
 
   /* ------------------------------- tier 2 -------------------------------- */
@@ -173,6 +193,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 70_000,
     colors: { primary: "#F97316", secondary: "#141414" },
     blurb: "El oso. Historia enorme, resultados en montaña rusa.",
+    logoPath: logo("virtus"),
   },
   {
     id: "heroic",
@@ -184,6 +205,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 50_000,
     colors: { primary: "#00B2A9", secondary: "#0c1a19" },
     blurb: "Reconstrucción constante. Buen trampolín.",
+    logoPath: logo("heroic"),
   },
   {
     id: "gamerlegion",
@@ -228,6 +250,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 42_000,
     colors: { primary: "#0EA5E9", secondary: "#0b1220" },
     blurb: "Los ninjas. Legado sueco y presión de volver arriba.",
+    logoPath: logo("nip"),
   },
   {
     id: "big",
@@ -250,6 +273,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 45_000,
     colors: { primary: "#1D4ED8", secondary: "#0a0f1f" },
     blurb: "La última bandera grande de Norteamérica.",
+    logoPath: logo("complexity"),
   },
   {
     id: "m80",
@@ -316,6 +340,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 28_000,
     colors: { primary: "#7C3AED", secondary: "#0f0a1c" },
     blurb: "El grito argentino. Hinchada que no perdona.",
+    logoPath: logo("9z"),
   },
   {
     id: "imperial",
@@ -327,6 +352,7 @@ export const TEAMS: Team[] = [
     budgetMonthly: 30_000,
     colors: { primary: "#22D3EE", secondary: "#08161a" },
     blurb: "Legado de los viejos cracks brasileños.",
+    logoPath: logo("imperial"),
   },
   {
     id: "legacy",

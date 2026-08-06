@@ -1,6 +1,10 @@
 import type { CsMap } from "@/lib/types/game";
 
-/** CS2 Active Duty pool (2026) plus the reserve maps still used in Competitive. */
+/**
+ * Map hero radars live in /public/maps/{id}.png.
+ * Source: MurkyYT/cs2-map-icons (CS2 depot radar dumps mirrored on GitHub).
+ * Liquipedia Commons overviews 404'd; HLTV hotlinking is unreliable.
+ */
 export const CS_MAPS: CsMap[] = [
   {
     id: "mirage",
@@ -16,6 +20,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Mid", "Palace", "Connector", "Jungle", "Apps", "Ramp", "Window"],
     sites: ["A", "B"],
     blurb: "El clásico. Todo pasa por el control de mid y window.",
+    imagePath: "/maps/mirage.png",
   },
   {
     id: "inferno",
@@ -31,6 +36,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Banana", "Apps", "Pit", "Arch", "Balcony", "Second Mid"],
     sites: ["A", "B"],
     blurb: "Guerra de utilidad. Banana define media partida.",
+    imagePath: "/maps/inferno.png",
   },
   {
     id: "nuke",
@@ -46,6 +52,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Outside", "Ramp", "Heaven", "Vents", "Secret", "Lobby"],
     sites: ["A", "B"],
     blurb: "Verticalidad pura. El CT que sabe rotar te come vivo.",
+    imagePath: "/maps/nuke.png",
   },
   {
     id: "ancient",
@@ -61,6 +68,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Donut", "Cave", "Temple", "Mid", "Ramp", "Elbow"],
     sites: ["A", "B"],
     blurb: "Selva y ejecuciones milimétricas. Mid vale oro.",
+    imagePath: "/maps/ancient.png",
   },
   {
     id: "anubis",
@@ -76,6 +84,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Canals", "Palace", "Bridge", "Connector", "Heaven", "Street"],
     sites: ["A", "B"],
     blurb: "Mapa de T. Si no retomás, no ganás halves de CT.",
+    imagePath: "/maps/anubis.png",
   },
   {
     id: "dust2",
@@ -91,6 +100,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Long", "Catwalk", "Tunnels", "Short", "Pit", "Car"],
     sites: ["A", "B"],
     blurb: "El mapa que todos creen conocer. Duelos de AWP eternos.",
+    imagePath: "/maps/dust2.png",
   },
   {
     id: "cache",
@@ -106,6 +116,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Mid", "Squeaky", "Highway", "Checkers", "Z", "Vents"],
     sites: ["A", "B"],
     blurb: "Volvió al pool. Control de mid y de highway manda.",
+    imagePath: "/maps/cache.png",
   },
   {
     id: "overpass",
@@ -121,6 +132,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Monster", "Toilets", "Bathrooms", "Connector", "Long", "Party"],
     sites: ["A", "B"],
     blurb: "Fuera del Active Duty pero sigue en Competitive.",
+    imagePath: "/maps/overpass.png",
   },
   {
     id: "train",
@@ -136,6 +148,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Ivy", "Popdog", "Ladder", "Connector", "Z", "Alley"],
     sites: ["A", "B"],
     blurb: "Trenes, ángulos imposibles y retakes durísimos.",
+    imagePath: "/maps/train.png",
   },
   {
     id: "vertigo",
@@ -151,6 +164,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Ramp", "Scaffolding", "Elevator", "Mid", "Sandbags", "B Stairs"],
     sites: ["A", "B"],
     blurb: "El rascacielos. Un mal paso y te caés literalmente.",
+    imagePath: "/maps/vertigo.png",
   },
 ];
 

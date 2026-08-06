@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import type { Team } from "@/lib/types/game";
 
@@ -17,11 +21,12 @@ function hashOf(value: string): number {
   return hash;
 }
 
-/**
- * Crests are generated locally from each organisation's real brand colours so
- * the game never depends on hotlinked logos that can 403 or disappear.
- */
-export function TeamLogo({ team, size = 44, className, animate }: TeamLogoProps) {
+function GeneratedCrest({
+  team,
+  size,
+  className,
+  animate,
+}: TeamLogoProps) {
   const variant = hashOf(team.id) % 4;
   const gradientId = `crest-${team.id}`;
   const glowId = `crest-glow-${team.id}`;
@@ -111,5 +116,44 @@ export function TeamLogo({ team, size = 44, className, animate }: TeamLogoProps)
         {initials}
       </text>
     </svg>
+  );
+}
+
+/**
+ * Prefers a local file in /public/teams/{id}.svg|png (logoPath), then falls
+ * back to a generated letter crest. HLTV CDN logos 403'd; SVGs are stylised
+ * brand-colour approximations for major orgs.
+ */
+export function TeamLogo({ team, size = 44, className, animate }: TeamLogoProps) {
+  const [failed, setFailed] = useState(false);
+  const src = team.logoPath ?? `/teams/${team.id}.svg`;
+
+  if (failed) {
+    return (
+      <GeneratedCrest
+        team={team}
+        size={size}
+        className={className}
+        animate={animate}
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      width={size}
+      height={size}
+      alt={`Logo de ${team.name}`}
+      className={cn(
+        "shrink-0 rounded-md object-contain",
+        animate && "animate-crest-in",
+        className,
+      )}
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+      draggable={false}
+    />
   );
 }

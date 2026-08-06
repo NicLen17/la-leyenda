@@ -46,20 +46,20 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
     >
       {/* identity */}
       <header className="flex items-center gap-2">
-        <TeamLogo team={player.team} size={40} animate key={player.team.id} />
+        <TeamLogo team={player.team} size={44} animate key={player.team.id} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <h2 className="truncate text-base font-black uppercase leading-none tracking-tight">
+            <h2 className="truncate text-lg font-black uppercase leading-none tracking-tight">
               {player.nickname}
             </h2>
-            <Badge variant="outline" className="h-4 px-1 text-[9px] font-bold">
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-bold">
               {ROLE_LABELS[player.role]}
             </Badge>
           </div>
-          <p className="truncate text-[11px] text-muted-foreground">
+          <p className="truncate text-xs text-muted-foreground">
             {player.team.name} · Tier {player.team.tier} · {player.nationality}
           </p>
-          <p className="truncate text-[9px] text-muted-foreground">
+          <p className="truncate text-[10px] text-muted-foreground">
             Peak Premier {player.peakPremierRating.toLocaleString("es-AR")} ·{" "}
             {og.label}
           </p>
@@ -67,16 +67,16 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
         <RankBadges premierRating={player.premierRating} size="sm" />
       </header>
 
-      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2 py-1">
+      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Rating 2.1
           </p>
           <AnimatedNumber
             value={player.rating}
             decimals={2}
             className={cn(
-              "text-lg font-black leading-none",
+              "text-xl font-black leading-none",
               player.rating >= 1.1
                 ? "text-primary"
                 : player.rating < 0.95
@@ -86,19 +86,19 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
           />
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Premier CS
           </p>
           <AnimatedNumber
             value={player.premierRating}
             grouped
-            className="text-lg font-black leading-none text-primary"
+            className="text-xl font-black leading-none text-primary"
           />
         </div>
       </div>
 
       {player.benched && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/15 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-destructive">
+        <div className="rounded-md border border-destructive/50 bg-destructive/15 px-2 py-1 text-center text-[11px] font-bold uppercase tracking-wider text-destructive">
           En el banco · sin minutos
         </div>
       )}
@@ -113,23 +113,23 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="rounded-md border border-border/60 bg-background/50 px-1.5 py-1 text-center"
+            className="rounded-md border border-border/60 bg-background/50 px-1.5 py-1.5 text-center"
           >
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {stat.label}
             </p>
             <AnimatedNumber
               value={stat.value}
               decimals={stat.decimals}
               suffix={stat.suffix}
-              className="text-sm font-bold"
+              className="text-base font-bold"
             />
           </div>
         ))}
       </div>
 
       {/* attributes */}
-      <div className="min-h-0 space-y-0.5 overflow-hidden">
+      <div className="min-h-0 space-y-1 overflow-hidden">
         <StatBar label="Aim" value={player.aim} />
         <StatBar label="Reflejos" value={player.reflexes} />
         <StatBar label="Game sense" value={player.gameSense} />
@@ -141,10 +141,10 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
       {/* fame */}
       <div>
         <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Fama
           </span>
-          <span className="text-[11px] font-bold text-primary">
+          <span className="text-xs font-bold text-primary">
             {player.fameLevel}
           </span>
         </div>
@@ -155,7 +155,7 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
           />
         </div>
         {nextFame && (
-          <p className="mt-0.5 text-[9px] text-muted-foreground">
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
             {nextFame.min - player.fame} pts para {nextFame.label}
           </p>
         )}
@@ -175,9 +175,9 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
             <AnimatedNumber
               value={stat.value}
               grouped={stat.grouped}
-              className="text-sm font-bold"
+              className="text-base font-bold"
             />
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               {stat.label}
             </p>
           </div>
@@ -186,30 +186,30 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
 
       {/* money + maps + meta */}
       <div className="mt-auto space-y-1.5">
-        <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2 py-1.5">
+        <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Sueldo
             </p>
-            <p className="text-xs font-bold text-primary">
+            <p className="text-sm font-bold text-primary">
               {money(player.salaryMonthly)}
-              <span className="text-[10px] font-normal text-muted-foreground">
+              <span className="text-[11px] font-normal text-muted-foreground">
                 /mes
               </span>
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Ganado
             </p>
-            <p className="text-xs font-bold">{money(player.earnings)}</p>
+            <p className="text-sm font-bold">{money(player.earnings)}</p>
           </div>
         </div>
 
         <MapPoolPanel mapStats={player.mapStats} compact />
 
         {archetype && (
-          <p className="truncate text-[10px] text-muted-foreground">
+          <p className="truncate text-[11px] text-muted-foreground">
             <span className="font-bold text-foreground">{archetype.label}</span>{" "}
             · {player.hltvTop20 ? `HLTV #${player.hltvTop20}` : player.nationalTeamStatus}
           </p>
@@ -221,7 +221,7 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
               <span
                 key={graffiti.id}
                 title={`${graffiti.name} — ${graffiti.reason}`}
-                className="animate-fade-up rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                className="animate-fade-up rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                 style={{
                   color: graffiti.color,
                   backgroundColor: `${graffiti.color}22`,

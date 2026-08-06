@@ -19,10 +19,10 @@ export function StatBar({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <span className="w-[68px] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <span className="w-[72px] shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border/70">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-border/70">
         <div
           className="animate-bar-grow h-full rounded-full transition-[width] duration-500"
           style={{
@@ -31,7 +31,7 @@ export function StatBar({
           }}
         />
       </div>
-      <span className="w-6 shrink-0 text-right text-[11px] font-bold tabular-nums">
+      <span className="w-7 shrink-0 text-right text-xs font-bold tabular-nums">
         {Math.round(value)}
       </span>
     </div>

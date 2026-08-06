@@ -34,6 +34,12 @@ const MINIGAME_LABELS: Record<string, string> = {
   defuse: "Minijuego: Defuse",
   coinflip: "Minijuego: Moneda CT/T",
   case: "Abrir caja",
+  hold: "Minijuego: Hold",
+  smoke: "Minijuego: Smoke",
+  retake: "Minijuego: Retake",
+  economy: "Minijuego: Economía",
+  awpPeek: "Minijuego: AWP peek",
+  plant: "Minijuego: Plant",
 };
 
 function formatEffect(key: keyof StatEffects, value: number): string {
@@ -62,43 +68,43 @@ export function ChoiceButton({
       onClick={() => onSelect(option.id)}
       style={{ animationDelay: `${index * 60}ms` }}
       className={cn(
-        "animate-card-in group relative w-full overflow-hidden rounded-lg border border-border/70 bg-card/70 p-2.5 text-left transition-all",
+        "animate-card-in group relative w-full flex-1 overflow-hidden rounded-lg border border-border/70 bg-card/70 p-3 text-left transition-all",
         "hover:-translate-y-0.5 hover:border-primary/70 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:pointer-events-none disabled:opacity-50",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-bold leading-tight">{option.label}</p>
+        <p className="text-[15px] font-bold leading-tight">{option.label}</p>
         <div className="flex shrink-0 gap-1">
           {option.risk && (
-            <span className="rounded bg-destructive/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-destructive">
+            <span className="rounded bg-destructive/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
               Riesgo
             </span>
           )}
           {option.minigame && (
-            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
               {MINIGAME_LABELS[option.minigame] ?? "Minijuego"}
             </span>
           )}
           {option.grantsCase && !option.minigame && (
-            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-400">
+            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400">
               Caja
             </span>
           )}
         </div>
       </div>
 
-      <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+      <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
         {option.description}
       </p>
 
       {effects.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
+        <div className="mt-2 flex flex-wrap gap-1">
           {effects.map(([key, value]) => (
             <span
               key={key}
               className={cn(
-                "rounded px-1.5 py-0.5 text-[9px] font-semibold tabular-nums",
+                "rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
                 key === "tilt" || key === "benchRisk"
                   ? value > 0
                     ? "bg-destructive/15 text-destructive"

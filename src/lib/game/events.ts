@@ -314,6 +314,217 @@ const MATCH_EVENTS: GameEvent[] = [
       },
     ],
   },
+  {
+    id: "dust2-awp-peek",
+    title: "Duelo de peek en Long de Dust II",
+    description:
+      "Tenés AWP en Pit. El AWPer rival holdéa Long doors. El round vale match point. Alguien tiene que peekear primero.",
+    category: "match",
+    mapId: "dust2",
+    scene: "map",
+    options: [
+      {
+        id: "awp-duel",
+        label: "Hold y castigar el peek",
+        description: "Esperar el jiggle y pegarle a la cabeza.",
+        effects: {},
+        minigame: "awpPeek",
+        successEffects: { aim: 3, reflexes: 2, fame: 4, form: 1 },
+        failEffects: { tilt: 2, fame: -1 },
+        successText:
+          "Peek, click, body. Recogés su AWP y Long queda cerrado el resto del half.",
+        failText:
+          "Te gana el peek por un frame. El caster dice 'too slow' y duele.",
+        outcomeText: "",
+      },
+      {
+        id: "flash-peek",
+        label: "Pedir flash y pelear juntos",
+        description: "Utility antes del duelo.",
+        effects: { utility: 2, chemistry: 1 },
+        outcomeText:
+          "La flash sale perfecta. Matás de AWP y el entry confirma. Long es de ustedes.",
+      },
+      {
+        id: "rotate-short",
+        label: "Rotar a Short y dejar Long",
+        description: "No pelear el duelo que no te gusta.",
+        effects: { gameSense: 2 },
+        outcomeText:
+          "Rotás. El rival gana Long gratis pero ustedes stackean B y lo castigan.",
+      },
+    ],
+  },
+  {
+    id: "mirage-smoke-window",
+    title: "Lineup de Window en Mirage",
+    description:
+      "Ejecución a Mid. El coach te mira: si la smoke de Window no cierra, el AWP rival parte el rush. Tenés un intento limpio desde T spawn.",
+    category: "match",
+    mapId: "mirage",
+    scene: "map",
+    options: [
+      {
+        id: "pixel-smoke",
+        label: "Tirar el lineup al pixel",
+        description: "Crosshair en la antena. Soltá en el timing exacto.",
+        effects: {},
+        minigame: "smoke",
+        successEffects: { utility: 4, gameSense: 2, fame: 2 },
+        failEffects: { utility: -1, tilt: 1, chemistry: -1 },
+        successText:
+          "Smoke perfecta. Mid queda ciego y entran con 5 vivos a Connector.",
+        failText:
+          "La smoke abre un hueco. El AWP saca dos y la ejecución muere.",
+        outcomeText: "",
+      },
+      {
+        id: "ask-support",
+        label: "Que la tire el support",
+        description: "Delegar al que más la practica.",
+        effects: { chemistry: 2, utility: 1 },
+        outcomeText:
+          "La tira limpia. Vos pelearás el duelo de Mid con la utilidad hecha.",
+      },
+    ],
+  },
+  {
+    id: "inferno-retake-b",
+    title: "Retake de B en Inferno",
+    description:
+      "Bomba plantada en B. Bajás de CT con un compañero. Hay que limpiar Dark, New Box y el site antes de que queden 5 segundos.",
+    category: "match",
+    mapId: "inferno",
+    scene: "map",
+    options: [
+      {
+        id: "clear-angles",
+        label: "Limpiar ángulos en orden",
+        description: "Retake disciplinado, sin hero plays.",
+        effects: {},
+        minigame: "retake",
+        successEffects: { gameSense: 3, clutch: 2, fame: 4 },
+        failEffects: { tilt: 2, fame: -1 },
+        successText:
+          "Clear perfecto. Defuse con kit y el half se da vuelta.",
+        failText:
+          "Te come un ángulo que no limpieaste. La bomba explota en la cara.",
+        outcomeText: "",
+      },
+      {
+        id: "rush-defuse",
+        label: "Corretear el defuse",
+        description: "Alto riesgo, alto reward.",
+        risk: true,
+        effects: {},
+        minigame: "defuse",
+        successEffects: { clutch: 4, fame: 5 },
+        failEffects: { clutch: -1, tilt: 3 },
+        successText: "Defuse suicida con 0.2. La arena enloquece.",
+        failText: "Te pegan mid-defuse. Highlight del rival, no tuyo.",
+        outcomeText: "",
+      },
+    ],
+  },
+  {
+    id: "anubis-crosshair-hold",
+    title: "Hold de Mid en Anubis",
+    description:
+      "Sos el ancla de Mid. Tenés que mantener el ángulo de Bridge mientras el rival tira utility. Si te movés mal, te flashan y pierden Mid.",
+    category: "match",
+    mapId: "anubis",
+    scene: "map",
+    options: [
+      {
+        id: "hold-bridge",
+        label: "Mantener el crosshair firme",
+        description: "Hold milimétrico hasta que peakeen.",
+        effects: {},
+        minigame: "hold",
+        successEffects: { aim: 3, reflexes: 2, form: 1 },
+        failEffects: { aim: -1, tilt: 2 },
+        successText:
+          "Dos taps limpios cuando peakean. Mid queda sellado el half entero.",
+        failText:
+          "La flash te saca del ángulo. Pierden Mid y el site de A se abre.",
+        outcomeText: "",
+      },
+      {
+        id: "fall-back",
+        label: "Ceder Mid y jugar Connector",
+        description: "Conservar vida y rotar info.",
+        effects: { gameSense: 2, chemistry: 1 },
+        outcomeText:
+          "Cedés Mid con info. El stack de A aguanta el hit y ganan el round.",
+      },
+    ],
+  },
+  {
+    id: "ancient-eco-quiz",
+    title: "Timeout de economía",
+    description:
+      "10-9 en Ancient. El IGL discute con el coach en el timeout. Te miran a vos: ¿force, eco o buy raro? Tenés que leer la plata bien.",
+    category: "match",
+    mapId: "ancient",
+    scene: "map",
+    options: [
+      {
+        id: "call-eco",
+        label: "Llamar la economía correcta",
+        description: "Quiz rápido de plata y bonus.",
+        effects: {},
+        minigame: "economy",
+        successEffects: { gameSense: 4, fame: 2, chemistry: 2 },
+        failEffects: { gameSense: -1, chemistry: -1, tilt: 1 },
+        successText:
+          "Tu call es perfecto. Full buy limpio y ganan el round clave.",
+        failText:
+          "Te equivocás de plata. Forcean mal y pierden dos rounds seguidos.",
+        outcomeText: "",
+      },
+      {
+        id: "mute-listen",
+        label: "Callar y dejar al IGL",
+        description: "No pelear el timeout.",
+        effects: { chemistry: 1 },
+        outcomeText:
+          "El IGL llama eco. Sale bien. No sumás crédito, pero tampoco drama.",
+      },
+    ],
+  },
+  {
+    id: "nuke-plant-timing",
+    title: "Plant en Ramp de Nuke",
+    description:
+      "Entrada a A por Ramp. El site está casi limpio pero Heaven puede asomarse. Si plantás muy temprano te matan; si esperás de más, no llega el plant.",
+    category: "match",
+    mapId: "nuke",
+    scene: "map",
+    options: [
+      {
+        id: "timed-plant",
+        label: "Plantar en la ventana exacta",
+        description: "Timing de plant bajo presión.",
+        effects: {},
+        minigame: "plant",
+        successEffects: { gameSense: 3, clutch: 2, fame: 3 },
+        failEffects: { tilt: 2, fame: -1 },
+        successText:
+          "Plant perfecto. Coverás el tip y ganan el round con kit falso.",
+        failText:
+          "Te pegan mid-plant desde Heaven. Bomba queda a medio meter.",
+        outcomeText: "",
+      },
+      {
+        id: "fake-plant",
+        label: "Fake plant y jugar el peek",
+        description: "Sacar al que holdéa Heaven.",
+        effects: { gameSense: 2, aim: 1 },
+        outcomeText:
+          "El fake saca a Heaven. Lo matás y plantás tranquilo.",
+      },
+    ],
+  },
 ];
 
 const LOCKER_ROOM_EVENTS: GameEvent[] = [

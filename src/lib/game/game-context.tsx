@@ -9,10 +9,11 @@ import {
   type ReactNode,
 } from "react";
 
-import type { CaseItem, CareerSetup } from "@/lib/types/game";
+import type { CaseItem, CsCase } from "@/lib/types/game";
 import {
   INITIAL_RUNTIME,
   acceptOffer,
+  buyStoreItem,
   chooseArchetype,
   continueAfterOutcome,
   continueAfterSummary,
@@ -24,6 +25,7 @@ import {
   type GameRuntime,
 } from "./engine";
 import { saveCareerResult, saveSetup } from "./storage";
+import type { CareerSetup } from "@/lib/types/game";
 
 type GameContextValue = {
   runtime: GameRuntime;
@@ -37,6 +39,8 @@ type GameContextValue = {
   nextSeason: () => void;
   signWith: (teamId: string) => void;
   unbox: (item: CaseItem) => void;
+  /** Spend earnings on a store item. Returns a case to open, or an error. */
+  buyItem: (itemId: string) => { caseToOpen: CsCase | null; error: string | null };
   retireNow: () => void;
   reset: () => void;
 };
@@ -87,7 +91,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (optionId: string) => {
       transition((current) => {
         const next = selectOption(current, optionId);
-        // Minigames need to appear instantly after the loader, not behind it.
         return next;
       });
     },
@@ -126,6 +129,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRuntime((current) => openCase(current, item));
   }, []);
 
+  const buyItem = useCallback(
+    (itemId: string) => {
+      const result = buyStoreItem(runtime, itemId);
+      if (!result.error) {
+        setRuntime(result.runtime);
+      }
+      return { caseToOpen: result.openCase, error: result.error };
+    },
+    [runtime],
+  );
+
   const retireNow = useCallback(() => {
     transition((current) => {
       const updated = retire(current);
@@ -152,6 +166,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       nextSeason,
       signWith,
       unbox,
+      buyItem,
       retireNow,
       reset,
     }),
@@ -166,6 +181,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       nextSeason,
       signWith,
       unbox,
+      buyItem,
       retireNow,
       reset,
     ],

@@ -82,9 +82,9 @@ export function SeasonSummary({
             <AnimatedNumber
               value={stat.value}
               decimals={stat.decimals ?? 0}
-              className="text-base font-black"
+              className="text-lg font-black"
             />
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {stat.label}
             </p>
           </div>
@@ -105,9 +105,9 @@ export function SeasonSummary({
               value={stat.value}
               prefix={stat.prefix}
               grouped={stat.grouped}
-              className="text-sm font-bold"
+              className="text-base font-bold"
             />
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
               {stat.label}
             </p>
           </div>

@@ -1,6 +1,12 @@
 import { ROLES, getArchetypeById, rollArchetypes } from "@/lib/data/archetypes";
-import { getGraffitiById, randomCase, rollCaseItem } from "@/lib/data/cases";
+import {
+  getCaseById,
+  getGraffitiById,
+  randomCase,
+  rollCaseItem,
+} from "@/lib/data/cases";
 import { PRO_PLAYERS, ROOKIE_NICKS, ROOKIE_REAL_NAMES } from "@/lib/data/pros";
+import { caseIdForStoreItem, getStoreItem } from "@/lib/data/store";
 import { getStarterTeam } from "@/lib/data/teams";
 import { getSeasonTournament } from "@/lib/data/tournaments";
 import type {
@@ -9,9 +15,11 @@ import type {
   CaseItem,
   CareerResult,
   CareerSetup,
+  CsCase,
   GameEvent,
   GamePhase,
   EventOption,
+  OutcomeKind,
   PlayerState,
   RivalPlayer,
   SeasonSummary,
@@ -66,6 +74,7 @@ export type GameRuntime = {
   currentEvent: GameEvent | null;
   pendingOption: EventOption | null;
   lastOutcome: string | null;
+  lastOutcomeKind: OutcomeKind;
   lastRewards: {
     graffitiName: string | null;
     caseItem: CaseItem | null;
@@ -84,6 +93,7 @@ export const INITIAL_RUNTIME: GameRuntime = {
   currentEvent: null,
   pendingOption: null,
   lastOutcome: null,
+  lastOutcomeKind: "neutral",
   lastRewards: { graffitiName: null, caseItem: null },
   offers: [],
   archetypeOptions: [],
@@ -91,6 +101,28 @@ export const INITIAL_RUNTIME: GameRuntime = {
   lastSummary: null,
   result: null,
 };
+
+function classifyOutcome(
+  option: EventOption,
+  minigameSuccess: boolean | null,
+  caseItem: CaseItem | null,
+): OutcomeKind {
+  if (caseItem) return "case";
+  if (option.grantsGraffiti && minigameSuccess !== false) return "clutch";
+  if (minigameSuccess === true) return "win";
+  if (minigameSuccess === false) return "fail";
+  if (option.id.includes("transfer") || option.id.includes("sign")) {
+    return "transfer";
+  }
+  if (
+    option.minigame === "spray" ||
+    option.minigame === "hold" ||
+    option.minigame === "smoke"
+  ) {
+    return "training";
+  }
+  return "neutral";
+}
 
 function pickRival(setup: CareerSetup): RivalPlayer {
   const names = ROOKIE_REAL_NAMES[setup.region];
@@ -161,6 +193,8 @@ export function createPlayer(setup: CareerSetup): PlayerState {
     graffiti: [],
     inventory: [],
     casesAvailable: 1,
+    storeOwned: [],
+    peripherals: {},
 
     careerLog: [],
     lastSeries: null,
@@ -280,6 +314,7 @@ function resolveOption(
   }
 
   state = refreshRanks(state);
+  const outcomeKind = classifyOutcome(option, minigameSuccess, caseItem);
 
   return {
     ...runtime,
@@ -291,6 +326,7 @@ function resolveOption(
       seasonHighlights: [...state.seasonHighlights, outcomeText],
     },
     lastOutcome: outcomeText,
+    lastOutcomeKind: outcomeKind,
     lastRewards: { graffitiName, caseItem },
     eventsLeftInSeason: Math.max(0, runtime.eventsLeftInSeason - 1),
   };
@@ -305,6 +341,7 @@ export function continueAfterOutcome(runtime: GameRuntime): GameRuntime {
       phase: "event",
       currentEvent: pickEvent(runtime.state),
       lastOutcome: null,
+      lastOutcomeKind: "neutral",
       lastRewards: { graffitiName: null, caseItem: null },
     };
   }
@@ -587,6 +624,118 @@ export function openCase(runtime: GameRuntime, item: CaseItem): GameRuntime {
   }
 
   return { ...runtime, state };
+}
+
+export type StorePurchaseResult = {
+  runtime: GameRuntime;
+  /** When buying a case, open the unbox UI with this case. */
+  openCase: CsCase | null;
+  error: string | null;
+};
+
+/**
+ * Spend from `earnings` (balance acumulado). Cases grant +1 casesAvailable and
+ * return the CsCase so the UI can launch CaseOpening immediately.
+ */
+export function buyStoreItem(
+  runtime: GameRuntime,
+  itemId: string,
+): StorePurchaseResult {
+  if (!runtime.state) {
+    return { runtime, openCase: null, error: "Sin carrera activa." };
+  }
+
+  const item = getStoreItem(itemId);
+  if (!item) {
+    return { runtime, openCase: null, error: "Ítem no encontrado." };
+  }
+
+  const state = runtime.state;
+  if (state.earnings < item.price) {
+    return {
+      runtime,
+      openCase: null,
+      error: "No te alcanza el saldo (ganancias).",
+    };
+  }
+
+  if (item.unique && state.storeOwned.includes(item.id)) {
+    return { runtime, openCase: null, error: "Ya lo tenés comprado." };
+  }
+
+  if (
+    item.peripheralSlot &&
+    state.peripherals[item.peripheralSlot] &&
+    state.storeOwned.includes(item.id)
+  ) {
+    return { runtime, openCase: null, error: "Ya equipaste este periférico." };
+  }
+
+  let next: PlayerState = {
+    ...state,
+    earnings: state.earnings - item.price,
+  };
+
+  if (item.unique || item.peripheralSlot) {
+    next = {
+      ...next,
+      storeOwned: [...next.storeOwned, item.id],
+    };
+  }
+
+  if (item.peripheralSlot) {
+    next = {
+      ...next,
+      peripherals: {
+        ...next.peripherals,
+        [item.peripheralSlot]: item.id,
+      },
+    };
+  }
+
+  if (item.kind === "skin") {
+    const skinItem: CaseItem = {
+      id: item.id,
+      name: item.name.includes("|")
+        ? item.name.split("|")[1]?.trim() ?? item.name
+        : item.name,
+      weapon: item.name.includes("|")
+        ? item.name.split("|")[0]?.trim() ?? "Skin"
+        : "Skin",
+      rarity: "restricted",
+      value: Math.round(item.price * 0.35),
+      buff: item.buff ?? null,
+    };
+    next = { ...next, inventory: [...next.inventory, skinItem] };
+  }
+
+  if (item.buff && item.kind !== "case") {
+    next = applyEffects(
+      next,
+      attributeEffect(item.buff.attribute, item.buff.amount),
+    );
+    // coaching utility pack also bumps game sense slightly
+    if (item.id === "coach-utility") {
+      next = applyEffects(next, { gameSense: 1 });
+    }
+    if (item.id === "peri-keyboard") {
+      next = applyEffects(next, { aim: 1 });
+    }
+  }
+
+  let opened: CsCase | null = null;
+  if (item.grantsCase) {
+    const caseId = caseIdForStoreItem(item);
+    opened = (caseId ? getCaseById(caseId) : null) ?? randomCase();
+    next = { ...next, casesAvailable: next.casesAvailable + 1 };
+  }
+
+  next = refreshRanks(next);
+  return {
+    runtime: { ...runtime, state: next },
+    openCase: opened,
+    error: null,
+  };
 }
 
 export function retire(runtime: GameRuntime): GameRuntime {

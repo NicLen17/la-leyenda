@@ -1,8 +1,12 @@
 "use client";
 
+import { AwpPeekGame } from "./awp-peek-game";
 import { CoinFlip } from "./coin-flip";
+import { EconomyQuiz } from "./economy-quiz";
 import { FlickGame } from "./flick-game";
+import { HoldGame } from "./hold-game";
 import { ReactionGame } from "./reaction-game";
+import { RetakeGame } from "./retake-game";
 import { TimingGame } from "./timing-game";
 import type { MinigameKind, PlayerState } from "@/lib/types/game";
 
@@ -37,6 +41,42 @@ export function MinigameHost({ kind, player, onComplete }: MinigameHostProps) {
       return <TimingGame mode="spray" onComplete={onComplete} />;
     case "defuse":
       return <TimingGame mode="defuse" onComplete={onComplete} />;
+    case "smoke":
+      return <TimingGame mode="smoke" onComplete={onComplete} />;
+    case "plant":
+      return <TimingGame mode="plant" onComplete={onComplete} />;
+    case "hold": {
+      const holdSeconds = 2.1 + (99 - player.aim) * 0.012;
+      return (
+        <HoldGame
+          holdSeconds={Math.min(3.2, holdSeconds)}
+          zoneSize={player.aim >= 70 ? 20 : 16}
+          onComplete={onComplete}
+        />
+      );
+    }
+    case "retake": {
+      const targets = player.gameSense >= 70 ? 3 : 4;
+      const seconds = 6.5 + player.reflexes * 0.025;
+      return (
+        <RetakeGame
+          targets={targets}
+          seconds={Math.min(9, seconds)}
+          onComplete={onComplete}
+        />
+      );
+    }
+    case "economy":
+      return <EconomyQuiz onComplete={onComplete} />;
+    case "awpPeek": {
+      const windowMs = 380 + Math.round(player.reflexes * 2.2);
+      return (
+        <AwpPeekGame
+          windowMs={Math.min(620, windowMs)}
+          onComplete={onComplete}
+        />
+      );
+    }
     case "coinflip":
       return <CoinFlip onComplete={onComplete} />;
     default:

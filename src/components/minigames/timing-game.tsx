@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type TimingGameProps = {
-  /** "spray" needs three consecutive hits, "defuse" is a single precise stop. */
-  mode: "spray" | "defuse";
+  /** Timing bar variants used by spray / utility / bomb actions. */
+  mode: "spray" | "defuse" | "smoke" | "plant";
   onComplete: (success: boolean) => void;
 };
 
@@ -19,6 +19,7 @@ const CONFIG = {
     zone: 17,
     speed: 1.5,
     accelerate: 0.45,
+    action: "Disparar",
   },
   defuse: {
     title: "Defuse a contrarreloj",
@@ -27,6 +28,25 @@ const CONFIG = {
     zone: 12,
     speed: 2.1,
     accelerate: 0,
+    action: "Cortar el cable",
+  },
+  smoke: {
+    title: "Lineup de smoke",
+    hint: "Soltá la smoke en el pixel exacto del lineup. Dos intentos.",
+    rounds: 2,
+    zone: 11,
+    speed: 1.85,
+    accelerate: 0.25,
+    action: "Tirar smoke",
+  },
+  plant: {
+    title: "Plant timing",
+    hint: "Plantá en la ventana segura: ni muy temprano (te peekean) ni tarde.",
+    rounds: 1,
+    zone: 14,
+    speed: 2.0,
+    accelerate: 0,
+    action: "Plantar",
   },
 } as const;
 
@@ -147,7 +167,7 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
 
         {started ? (
           <Button onClick={stop} className="w-full" size="lg">
-            {mode === "defuse" ? "Cortar el cable" : "Disparar"}
+            {config.action}
           </Button>
         ) : (
           <Button onClick={begin} className="w-full" size="lg" variant="secondary">

@@ -44,7 +44,42 @@ export type MinigameKind =
   | "spray"
   | "defuse"
   | "coinflip"
-  | "case";
+  | "case"
+  | "hold"
+  | "smoke"
+  | "retake"
+  | "economy"
+  | "awpPeek"
+  | "plant";
+
+export type PeripheralSlot = "mouse" | "keyboard" | "monitor" | "headset";
+
+export type StoreItemKind = "case" | "skin" | "coaching" | "peripheral";
+
+export type StoreItem = {
+  id: string;
+  name: string;
+  description: string;
+  kind: StoreItemKind;
+  /** Price deducted from spendable `earnings`. */
+  price: number;
+  buff?: { attribute: AttributeKey; amount: number } | null;
+  /** One-time purchase (peripherals / unique skins). */
+  unique?: boolean;
+  peripheralSlot?: PeripheralSlot;
+  /** Adds one unopened case to inventory when bought. */
+  grantsCase?: boolean;
+  imagePath?: string;
+};
+
+export type OutcomeKind =
+  | "win"
+  | "clutch"
+  | "fail"
+  | "transfer"
+  | "case"
+  | "neutral"
+  | "training";
 
 export type Rarity =
   | "consumer"
@@ -70,6 +105,8 @@ export type Team = {
   colors: { primary: string; secondary: string };
   /** Short identity blurb shown in the transfer market */
   blurb: string;
+  /** Optional local logo under /public (e.g. /teams/vitality.svg). */
+  logoPath?: string;
 };
 
 export type TeamOffer = {
@@ -120,6 +157,8 @@ export type CsMap = {
   callouts: string[];
   sites: [string, string];
   blurb: string;
+  /** Local hero/radar asset under /public (object-cover). */
+  imagePath?: string;
 };
 
 /* ------------------------------- tournaments ------------------------------ */
@@ -436,6 +475,10 @@ export type PlayerState = {
   graffiti: Graffiti[];
   inventory: CaseItem[];
   casesAvailable: number;
+  /** Store item ids already purchased (unique gear). */
+  storeOwned: string[];
+  /** Equipped peripherals bought in the tienda. */
+  peripherals: Partial<Record<PeripheralSlot, string>>;
 
   careerLog: SeasonSummary[];
   lastSeries: SeriesResult | null;
