@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# La Leyenda — Counter-Strike Career Simulator
 
-## Getting Started
+Simulador web de carrera inspirado en *El Ídolo*: partidas cortas, decisiones con impacto y un resumen shareable al retirarte.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (opcional) para rankings diarios y persistencia
+- Motor de juego 100% client-side
+
+## Scripts
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configurar Supabase (opcional)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copiá `.env.example` a `.env.local`
+2. Completá `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Corré la migración en [`supabase/migrations/001_la_leyenda.sql`](supabase/migrations/001_la_leyenda.sql)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sin Supabase, el juego funciona igual y guarda carreras/rankings en `localStorage`.
 
-## Learn More
+## Rutas
 
-To learn more about Next.js, take a look at the following resources:
+- `/` — setup de carrera + daily challenge
+- `/play` — loop de eventos / splits / retiro
+- `/ranking` — leaderboard del día
+- `/profile` — historial local de carreras
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Gameplay
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Elegí nick, región, nacionalidad y rol (Entry / AWP / IGL)
+2. Resolvé eventos narrativos (200+)
+3. Cada split cierra con un bloque de torneos simulado
+4. Retirate y compará tu carrera con leyendas (s1mple, ZywOo, device, etc.)

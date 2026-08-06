@@ -1,69 +1,82 @@
-import Image from "next/image";
+import { SetupForm } from "@/components/game/setup-form";
+import { ACTIVE_DUTY } from "@/lib/data/maps";
+import { EVENT_COUNT } from "@/lib/game/events";
+import { TEAMS } from "@/lib/data/teams";
 
-export default function Home() {
+const FEATURES = [
+  {
+    title: "Minijuegos reales",
+    body: "Flicks, tiempo de reacción, control de spray y defuses a contrarreloj deciden tus clutches.",
+  },
+  {
+    title: "Stats de CS2",
+    body: "MR12, rating 2.1, ADR, KAST, HS%, clutches 1vX y aces calculados ronda por ronda.",
+  },
+  {
+    title: "Mercado con sueldos reales",
+    body: "Ofertas calculadas sobre presupuestos reales del circuito, con riesgo de banca incluido.",
+  },
+  {
+    title: "Cajas y graffitis",
+    body: "Abrí cajas con las probabilidades reales de Valve y ganá graffitis por jugadas icónicas.",
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 items-center gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+      <div className="hidden max-w-sm flex-col gap-4 lg:flex">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
+            Counter-Strike 2
+          </p>
+          <h1 className="text-4xl font-black uppercase leading-[0.95] tracking-tight">
+            De la LAN de
+            <br />
+            tier 3 al
+            <br />
+            <span className="text-primary">Major</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-2 text-sm leading-snug text-muted-foreground">
+            Elegí tu rol, tu arquetipo y jugate cada decisión. Una carrera
+            completa en cinco minutos: scrims, vestuario, mercado de pases y
+            finales que se ganan con tu propio aim.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-2 gap-2">
+          {FEATURES.map((feature) => (
+            <div
+              key={feature.title}
+              className="rounded-lg border border-border/60 bg-card/40 p-2.5"
+            >
+              <p className="text-[12px] font-bold">{feature.title}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                {feature.body}
+              </p>
+            </div>
+          ))}
         </div>
-      </main>
+
+        <div className="flex gap-4 border-t border-border/50 pt-3 text-center">
+          {[
+            { value: TEAMS.length, label: "Orgs reales" },
+            { value: ACTIVE_DUTY.length, label: "Mapas Active Duty" },
+            { value: `${EVENT_COUNT}+`, label: "Situaciones" },
+          ].map((stat) => (
+            <div key={stat.label} className="flex-1">
+              <p className="text-xl font-black text-primary">{stat.value}</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-1 justify-center">
+        <SetupForm />
+      </div>
     </div>
   );
 }
