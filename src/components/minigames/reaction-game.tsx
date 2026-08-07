@@ -18,8 +18,8 @@ type Stage = "idle" | "waiting" | "peek" | "tooSoon" | "done";
 type EnemySide = "ct" | "t";
 
 const ENEMY_IMAGES: Record<EnemySide, string> = {
-  ct: "/ui/cst silueta.png",
-  t: "/ui/tt silueta.png",
+  ct: "/ui/cst silueta.webp",
+  t: "/ui/tt silueta.webp",
 };
 
 const CROSSHAIR_GREEN = "#7CFF6B";

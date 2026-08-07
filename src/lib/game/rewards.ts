@@ -44,15 +44,15 @@ const MINIGAME_SUCCESS: Record<MinigameKind, StatEffects> = {
 };
 
 const MINIGAME_FAIL: Record<MinigameKind, StatEffects> = {
-  flick: { tilt: 1, form: -1 },
-  reaction: { tilt: 1, form: -1 },
-  hold: { tilt: 1 },
-  awpPeek: { tilt: 1, form: -1 },
-  retake: { tilt: 1, form: -1 },
-  lineup: { tilt: 1 },
-  economy: { tilt: 1 },
-  plant: { tilt: 1, form: -1 },
-  defuse: { tilt: 1, form: -1 },
+  flick: { aim: -1, tilt: 1, form: -1 },
+  reaction: { reflexes: -1, tilt: 1, form: -1 },
+  hold: { aim: -1, tilt: 1 },
+  awpPeek: { reflexes: -1, tilt: 1, form: -1 },
+  retake: { gameSense: -1, tilt: 1, form: -1 },
+  lineup: { utility: -1, tilt: 1 },
+  economy: { gameSense: -1, tilt: 1 },
+  plant: { clutch: -1, tilt: 1, form: -1 },
+  defuse: { clutch: -1, tilt: 1, form: -1 },
   coinflip: { form: -1 },
   case: {},
 };
@@ -243,8 +243,13 @@ export function seriesPerformanceGrowth(
   stats: RoundStats,
 ): StatEffects {
   if (seasonRating < 0.92) {
-    // Rough split — no mechanical growth (rust shows via form/tilt elsewhere).
-    return {};
+    // Rough split: no growth and light mechanical rust on the role's main tools.
+    // Combined with per-split attrition, mediocre form actually costs skill.
+    const primaries = ROLE_GROWTH[player.role];
+    const rust: StatEffects = {};
+    if (primaries[0]) rust[primaries[0]] = -1;
+    if (seasonRating < 0.85 && primaries[1]) rust[primaries[1]] = -1;
+    return rust;
   }
 
   const primaries = ROLE_GROWTH[player.role];

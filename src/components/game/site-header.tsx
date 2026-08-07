@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const LINKS = [
@@ -10,13 +11,15 @@ export function SiteHeader() {
   return (
     <header className="shrink-0 border-b border-border/50 bg-black/40 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-4 py-2">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-md border border-primary/50 bg-primary/15">
-            <svg viewBox="0 0 24 24" className="size-4 fill-primary" aria-hidden>
-              <path d="M12 2 4 6v6c0 5 3.4 9.1 8 10 4.6-.9 8-5 8-10V6z" opacity="0.3" />
-              <path d="M12 6.5 8 8.5V12c0 2.6 1.6 4.8 4 5.5 2.4-.7 4-2.9 4-5.5V8.5z" />
-            </svg>
-          </span>
+        <Link href="/" className="group flex items-center gap-2.5">
+          <Image
+            src="/brand/logo-256.webp"
+            alt="La Leyenda"
+            width={36}
+            height={36}
+            priority
+            className="size-9 drop-shadow-[0_0_12px_rgba(245,158,11,0.35)] transition duration-300 group-hover:scale-105 group-hover:drop-shadow-[0_0_16px_rgba(245,158,11,0.55)]"
+          />
           <div className="leading-none">
             <p className="text-sm font-black tracking-wide">LA LEYENDA</p>
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">

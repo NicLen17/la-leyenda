@@ -74,11 +74,18 @@ export function evaluateMarketAccess(player: PlayerState): MarketAccess {
   return { skill, rating, maxTier, eliteReady, label, nextStep };
 }
 
-/** Soft budget fit: orgs won't offer a seat they can't roughly afford. */
+/**
+ * Soft budget fit: comfort seat, or a stretch "star seat" (up to ~40% of
+ * the full roster monthly budget). Superstars still hear from big desks
+ * even when their MV exceeds a clean 1/5 split of payroll.
+ */
 export function budgetFitsOffer(team: Team, marketValue: number): boolean {
   const perSeat = team.budgetMonthly / 5;
-  // Stars can stretch a roster; cheap players always fit.
-  return perSeat * 1.85 >= marketValue * 0.5;
+  const stretchSeat = team.budgetMonthly * 0.4;
+  // Comfortable share of market value, or top-heavy star package.
+  return (
+    perSeat * 2.1 >= marketValue * 0.4 || stretchSeat >= marketValue * 0.32
+  );
 }
 
 /**

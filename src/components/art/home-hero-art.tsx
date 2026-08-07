@@ -15,7 +15,7 @@ export function HomeHeroArt() {
       <div className="animate-hero-slide-left absolute bottom-0 left-0 z-[1] h-[80%] w-[min(60vw,600px)] max-sm:h-[58%] max-sm:opacity-50 lg:h-[96%] lg:w-[48%]">
         <div className="animate-hero-float relative h-full w-full">
           <Image
-            src="/ui/hero-left.png"
+            src="/ui/hero-left.webp"
             alt=""
             fill
             priority
@@ -30,7 +30,7 @@ export function HomeHeroArt() {
         <div className="animate-hero-float-alt relative h-full w-full opacity-90 [mask-image:radial-gradient(ellipse_72%_82%_at_58%_58%,#000_28%,rgba(0,0,0,0.75)_52%,transparent_78%)] [-webkit-mask-image:radial-gradient(ellipse_72%_82%_at_58%_58%,#000_28%,rgba(0,0,0,0.75)_52%,transparent_78%)]">
           {/* Expanded dark matte covers residual cutout fringe */}
           <Image
-            src="/ui/hero-right-matte.png"
+            src="/ui/hero-right-matte.webp"
             alt=""
             fill
             priority
@@ -38,7 +38,7 @@ export function HomeHeroArt() {
             className="object-contain object-right-bottom scale-[1.12] opacity-100 blur-[4px]"
           />
           <Image
-            src="/ui/hero-right-v3.png"
+            src="/ui/hero-right-v3.webp"
             alt=""
             fill
             priority

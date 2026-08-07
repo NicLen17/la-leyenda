@@ -22,7 +22,7 @@ export const STORE_ITEMS: StoreItem[] = [
     kind: "case",
     price: 2_800,
     grantsCase: true,
-    imagePath: "/ui/cs2-case-2.png",
+    imagePath: "/ui/cs2-case-2.webp",
   },
   {
     id: "case-kilowatt",
@@ -31,7 +31,7 @@ export const STORE_ITEMS: StoreItem[] = [
     kind: "case",
     price: 3_200,
     grantsCase: true,
-    imagePath: "/ui/cs2-case-2.png",
+    imagePath: "/ui/cs2-case-2.webp",
   },
   {
     id: "skin-starter-ak",
@@ -122,7 +122,7 @@ export const STORE_ITEMS: StoreItem[] = [
     unique: true,
     peripheralSlot: "headset",
     buff: { attribute: "gameSense", amount: 3 },
-    imagePath: "/ui/headset-pro.png",
+    imagePath: "/ui/headset-pro.webp",
   },
 ];
 

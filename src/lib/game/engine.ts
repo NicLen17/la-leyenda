@@ -42,6 +42,7 @@ import { pickEvent } from "./events";
 import {
   applyAgeing,
   applyEffects,
+  applySplitAttrition,
   careerScore,
   compareToLegend,
   computeTop20,
@@ -206,6 +207,7 @@ export function createPlayer(setup: CareerSetup): PlayerState {
     utility: 32,
     clutch: 34,
     movement: 36,
+    splitTraining: {},
 
     form: 0,
     tilt: 0,
@@ -646,6 +648,9 @@ function advanceSplit(
       storeSeasonPurchases: { coaching: 0, cases: 0 },
     };
   }
+
+  // Rust vs training this split: untrained peaks slip. Reset counter after.
+  state = applySplitAttrition(state);
 
   state.fameLevel = getFameLevel(state.fame);
   state.nationalTeamStatus = getNationalTeamStatus(state);

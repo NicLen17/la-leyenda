@@ -44,14 +44,63 @@ type ActiveClip = {
   cutTimer?: number;
 };
 
+const MUTE_KEY = "la-leyenda-muted";
+
 let unlocked = false;
 let lastGunshot: SoundKey | null = null;
 const active: ActiveClip[] = [];
 let tickTimer: number | null = null;
 let tickCtx: AudioContext | null = null;
+let muted = false;
+let muteHydrated = false;
+const muteListeners = new Set<(value: boolean) => void>();
+
+function hydrateMute() {
+  if (muteHydrated || typeof window === "undefined") return;
+  muteHydrated = true;
+  try {
+    muted = window.localStorage.getItem(MUTE_KEY) === "1";
+  } catch {
+    // private mode / blocked storage
+  }
+}
 
 function unlock() {
   unlocked = true;
+}
+
+/** Whether the player has muted all game SFX. Hydrates from localStorage once. */
+export function isMuted(): boolean {
+  hydrateMute();
+  return muted;
+}
+
+/** Mute / unmute every clip and spin tick. Persists across sessions. */
+export function setMuted(next: boolean): void {
+  if (typeof window === "undefined") return;
+  hydrateMute();
+  if (muted === next) return;
+  muted = next;
+  if (muted) stopAllSounds();
+  try {
+    window.localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+  } catch {
+    // private mode / blocked storage
+  }
+  for (const listener of muteListeners) listener(muted);
+}
+
+export function toggleMuted(): boolean {
+  setMuted(!isMuted());
+  return muted;
+}
+
+/** Subscribe to mute changes (for UI icons). */
+export function subscribeMute(listener: (value: boolean) => void): () => void {
+  muteListeners.add(listener);
+  return () => {
+    muteListeners.delete(listener);
+  };
 }
 
 function releaseClip(entry: ActiveClip) {
@@ -92,6 +141,7 @@ type PlayOptions = {
 /** Play a one-shot clip. Returns a stop handle. */
 export function playSound(key: SoundKey, options?: PlayOptions): () => void {
   if (typeof window === "undefined") return () => undefined;
+  if (isMuted()) return () => undefined;
   unlock();
   pruneFinished();
 
@@ -296,6 +346,7 @@ function ensureTickContext(): AudioContext | null {
 }
 
 function beepTick(progress: number) {
+  if (isMuted()) return;
   const ctx = ensureTickContext();
   if (!ctx) return;
   const now = ctx.currentTime;
@@ -318,9 +369,14 @@ function beepTick(progress: number) {
  */
 export function startSpinTicks(getProgress: () => number) {
   stopTicks();
+  if (isMuted()) return;
   unlock();
 
   const schedule = () => {
+    if (isMuted()) {
+      tickTimer = null;
+      return;
+    }
     const progress = Math.min(1, Math.max(0, getProgress()));
     if (progress >= 1) {
       tickTimer = null;

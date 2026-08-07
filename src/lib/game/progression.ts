@@ -70,13 +70,19 @@ export function applyEffects(
   effects: StatEffects,
 ): PlayerState {
   const next: PlayerState = { ...player };
+  const training = { ...(player.splitTraining ?? {}) };
 
   for (const key of ATTRIBUTE_KEYS) {
     const delta = effects[key];
     if (typeof delta === "number") {
       next[key] = clamp(next[key] + delta, 1, 99);
+      // Only deliberate gains count as training toward rust offset.
+      if (delta > 0) {
+        training[key] = (training[key] ?? 0) + delta;
+      }
     }
   }
+  next.splitTraining = training;
 
   if (typeof effects.fame === "number") {
     next.fame = clamp(next.fame + effects.fame, 0, 100);
@@ -108,6 +114,52 @@ export function applyEffects(
   return next;
 }
 
+/**
+ * Rust demand for one core attr this split. High peaks cost more to hold;
+ * late-career body taxes mechanical skills. Floor stays soft so rookies
+ * don't freefall — pressure appears as you actually stack skill.
+ */
+export function splitRustDemand(
+  value: number,
+  age: number,
+  key: AttributeKey,
+): number {
+  if (value < 35) return 0;
+
+  let rust = 1;
+  if (value >= 70) rust += 1;
+  if (value >= 85) rust += 1;
+  if (value >= 95) rust += 1;
+
+  const mechanical =
+    key === "aim" || key === "reflexes" || key === "movement";
+  if (age >= 24 && mechanical) rust += 1;
+  if (age >= 27 && (key === "reflexes" || key === "movement")) rust += 1;
+
+  return rust;
+}
+
+/**
+ * End-of-split maintenance: every core attr wants rust; training from the
+ * split offsets 1:1. Forces prioritisation — you can't stack 99s forever
+ * by only ever training aim.
+ */
+export function applySplitAttrition(player: PlayerState): PlayerState {
+  const training = player.splitTraining ?? {};
+  const next: PlayerState = { ...player, splitTraining: {} };
+
+  for (const key of ATTRIBUTE_KEYS) {
+    const demand = splitRustDemand(next[key], next.age, key);
+    const credit = training[key] ?? 0;
+    const net = Math.max(0, demand - credit);
+    if (net > 0) {
+      next[key] = clamp(next[key] - net, 1, 99);
+    }
+  }
+
+  return next;
+}
+
 /** Reflexes fade first, game sense keeps growing. Classic CS ageing curve. */
 export function applyAgeing(player: PlayerState): PlayerState {
   const next = { ...player };
@@ -116,6 +168,7 @@ export function applyAgeing(player: PlayerState): PlayerState {
     next.reflexes = clamp(next.reflexes + 1, 1, 99);
     next.movement = clamp(next.movement + 1, 1, 99);
   } else if (next.age >= 27) {
+    // Extra late-career penalty on top of per-split attrition.
     const decay = next.age >= 30 ? 2 : 1;
     next.reflexes = clamp(next.reflexes - decay, 1, 99);
     next.movement = clamp(next.movement - decay, 1, 99);
@@ -132,19 +185,23 @@ export function applyAgeing(player: PlayerState): PlayerState {
  * What orgs pay for: mechanical level + recent rating + hardware (trophies).
  * Fame is name recognition — useful, not a substitute for fragging.
  * Agent buzz (`transferBoost`) is a small nudge, never the main lever.
+ * Soft ceiling keeps superstar MV in a range T1 desks can still bid on.
  */
 export function marketValue(player: PlayerState): number {
   const skill = individualSkill(player);
-  const ratingFactor = Math.pow(clamp(player.rating, 0.75, 1.45), 5);
+  // ^3.2 (was ^5): still rewards form hard, without pricing every star out of every roster.
+  const ratingFactor = Math.pow(clamp(player.rating, 0.75, 1.45), 3.2);
   const base = 400 + skill * 90;
-  const fameFactor = 1 + player.fame / 85;
-  const trophyFactor = 1 + player.trophies * 0.12 + player.majors * 0.45;
-  const ageFactor = player.age <= 21 ? 1.2 : player.age >= 29 ? 0.7 : 1;
+  const fameFactor = 1 + player.fame / 95;
+  const trophyFactor = 1 + player.trophies * 0.1 + player.majors * 0.38;
+  const ageFactor = player.age <= 21 ? 1.15 : player.age >= 29 ? 0.72 : 1;
   const buzz = 1 + clamp(player.transferBoost, -12, 18) / 220;
 
-  return Math.round(
-    base * ratingFactor * fameFactor * trophyFactor * ageFactor * buzz,
-  );
+  const raw =
+    base * ratingFactor * fameFactor * trophyFactor * ageFactor * buzz;
+  // Soft soft-cap: asymptotic pull toward 220k so leviathans still rise slowly.
+  const capped = raw <= 160_000 ? raw : 160_000 + (raw - 160_000) * 0.35;
+  return Math.round(Math.min(capped, 260_000));
 }
 
 function offerRole(team: Team, player: PlayerState): Role {
@@ -156,39 +213,63 @@ function offerRole(team: Team, player: PlayerState): Role {
 /**
  * Offers are gated by real performance (rating / skill / Majors), then salary
  * fit. Weak numbers → Tier 3 / academias only; stars unlock HLTV top desks.
+ * High MV never wipes the market: stretch top desks first, T3 last resort.
  */
 export function generateOffers(player: PlayerState, count = 5): TeamOffer[] {
   const value = marketValue(player);
   const access = evaluateMarketAccess(player);
 
-  let candidates = TEAMS.filter((team) => {
-    if (team.id === player.team.id) return false;
-    if (!qualifiesForTeam(player, team)) return false;
-    return budgetFitsOffer(team, value);
-  });
+  const eligible = TEAMS.filter(
+    (team) => team.id !== player.team.id && qualifiesForTeam(player, team),
+  );
 
-  // Always keep a living market: if gates + budget wipe the pool, fall back to T3.
+  let candidates = eligible.filter((team) => budgetFitsOffer(team, value));
+
+  // Superstar payroll shouldn't erase Tier 1 interest — pad with stretch seats
+  // from the best unpaid desks the player already unlocked.
+  if (candidates.length < count) {
+    const have = new Set(candidates.map((t) => t.id));
+    const stretch = eligible
+      .filter((team) => !have.has(team.id))
+      .sort((a, b) => {
+        const tierBias = (t: Team) => (t.tier === access.maxTier ? 30 : 0);
+        return (
+          b.budgetMonthly + b.prestige + tierBias(b) -
+          (a.budgetMonthly + a.prestige + tierBias(a))
+        );
+      });
+    candidates = [...candidates, ...stretch];
+  }
+
+  // True empty pool (locked out of everything but academies): T3 grind path.
   if (candidates.length === 0) {
     candidates = TEAMS.filter(
       (team) => team.id !== player.team.id && team.tier === 3,
     );
   }
 
-  // Favour own region; bias toward the highest tier the player unlocked.
+  // Favour unlocked ceiling + budget depth + home region.
   const weighted = [...candidates].sort((a, b) => {
     const score = (team: Team) => {
       const region = team.region === player.region ? 14 : 0;
-      const tierFit = team.tier === access.maxTier ? 10 : 0;
-      return team.prestige + region + tierFit;
+      const tierFit = team.tier === access.maxTier ? 18 : team.tier < 3 ? 6 : 0;
+      const wallet = Math.min(team.budgetMonthly / 8_000, 28);
+      return team.prestige + region + tierFit + wallet;
     };
     return score(b) - score(a);
   });
 
   const picked: Team[] = [];
-  const pool = weighted.slice(0, Math.max(count + 8, 12));
+  // Prefer a deeper high-tier pool so elite careers actually sample elite orgs.
+  const poolSize = Math.max(
+    count + 10,
+    access.maxTier === 1 ? 18 : access.maxTier === 2 ? 14 : 12,
+  );
+  const pool = weighted.slice(0, Math.min(poolSize, weighted.length));
   while (picked.length < Math.min(count, pool.length)) {
-    // Soft weight: higher prestige more likely only when already unlocked.
-    const roll = Math.floor(Math.pow(Math.random(), 0.65) * pool.length);
+    // Bias harder toward the front (prestige/wallet) for unlocked max tier.
+    const exponent = access.maxTier === 1 ? 0.5 : 0.65;
+    const roll = Math.floor(Math.pow(Math.random(), exponent) * pool.length);
     const [team] = pool.splice(roll, 1);
     if (team) picked.push(team);
   }
@@ -196,9 +277,13 @@ export function generateOffers(player: PlayerState, count = 5): TeamOffer[] {
   const offers = picked.map((team) => buildOffer(team, player, value));
 
   // Current org always tables a renewal so you can stay put.
+  // Modest raise vs market — external top desks can still undercut or match.
+  const marketBid = value * 0.88;
+  const modestRaise = player.salaryMonthly * 1.06;
+  const renewalCap = player.salaryMonthly * 1.35 + 20_000;
   const renewalSalary = Math.round(
-    Math.max(player.salaryMonthly, value * 0.85) *
-      (player.benched ? 0.7 : 1),
+    Math.min(Math.max(modestRaise, marketBid), renewalCap) *
+      (player.benched ? 0.72 : 1),
   );
   offers.unshift({
     team: player.team,
@@ -216,17 +301,25 @@ export function generateOffers(player: PlayerState, count = 5): TeamOffer[] {
   return offers;
 }
 
+function salaryBand(tier: Team["tier"]): { floor: number; ceiling: number } {
+  if (tier === 1) return { floor: 5_000, ceiling: 210_000 };
+  if (tier === 2) return { floor: 2_000, ceiling: 42_000 };
+  return { floor: 900, ceiling: 9_000 };
+}
+
 function buildOffer(team: Team, player: PlayerState, value: number): TeamOffer {
   const perSeat = team.budgetMonthly / 5;
-  const relative = value / perSeat;
-  const starRole = relative >= 1.1;
+  // Star package can claim up to ~42% of roster payroll (franchise face).
+  const starPackage = Math.round(team.budgetMonthly * 0.42);
+  const affordMax = Math.max(Math.round(perSeat * 2.15), starPackage);
+  const relative = value / Math.max(perSeat, 1);
+  const starRole = relative >= 1.05 || value >= perSeat * 1.2;
 
+  const { floor, ceiling } = salaryBand(team.tier);
+  // Bid near market when the desk can; otherwise max stretch package.
+  const target = Math.min(value * 0.82, affordMax);
   const salaryMonthly = Math.round(
-    clamp(
-      perSeat * clamp(relative, 0.55, 1.9),
-      team.tier === 1 ? 5_000 : team.tier === 2 ? 2_000 : 900,
-      team.tier === 1 ? 95_000 : team.tier === 2 ? 18_000 : 6_000,
-    ),
+    clamp(target, floor, Math.min(ceiling, Math.max(affordMax, floor))),
   );
 
   const stepUp = team.tier < player.team.tier;
@@ -238,6 +331,9 @@ function buildOffer(team: Team, player: PlayerState, value: number): TeamOffer {
   if (benchRisk) notes.push("Arrancás peleando el quinto puesto");
   if (team.region !== player.region) notes.push("Te mudás de región");
   if (team.prestige >= 90) notes.push("Candidato a Major");
+  if (salaryMonthly >= player.salaryMonthly * 0.9 && team.tier === 1) {
+    notes.push("Paquete competitivo");
+  }
 
   return {
     team,

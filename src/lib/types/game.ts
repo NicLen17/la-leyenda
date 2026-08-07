@@ -465,6 +465,12 @@ export type PlayerState = {
   utility: number;
   clutch: number;
   movement: number;
+  /**
+   * Positive core-attr training accumulated during the current split
+   * (minigames, events, series growth, shop). Offsets split attrition;
+   * reset after attrition runs at split end.
+   */
+  splitTraining: Partial<Record<AttributeKey, number>>;
 
   /** Short-term modifiers */
   form: number;

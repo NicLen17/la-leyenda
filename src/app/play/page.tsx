@@ -262,7 +262,7 @@ export default function PlayPage() {
                 reset();
                 router.push("/");
               }}
-              className="mx-auto h-full max-w-3xl"
+              className="mx-auto h-full w-full max-w-4xl"
             />
           )}
         </div>

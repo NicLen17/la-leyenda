@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -18,8 +19,11 @@ import {
 } from "@/components/ui/select";
 import {
   PLAY_BUTTON_NAV_DELAY_MS,
+  isMuted,
   playMenuClick,
   playPlayButton,
+  setMuted,
+  subscribeMute,
 } from "@/lib/audio/sounds";
 import { ROLES } from "@/lib/data/archetypes";
 import {
@@ -86,6 +90,12 @@ export function SetupForm({
     NATIONALITIES["south-america"][0],
   );
   const [role, setRole] = useState<Role>("entry");
+  const [audioMuted, setAudioMuted] = useState(false);
+
+  useEffect(() => {
+    setAudioMuted(isMuted());
+    return subscribeMute(setAudioMuted);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -158,17 +168,36 @@ export function SetupForm({
               : "Cargando desafío..."}
           </p>
         </div>
-        <Button
-          size="sm"
-          disabled={!daily || launching}
-          className="shrink-0 bg-amber-500 text-black hover:bg-amber-400"
-          onClick={() =>
-            daily &&
-            start({ ...daily, nickname: nickname.trim() || daily.nickname })
-          }
-        >
-          {launching ? "Entrando..." : "Jugar"}
-        </Button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={launching}
+            aria-pressed={audioMuted}
+            aria-label={audioMuted ? "Activar sonido" : "Silenciar juego"}
+            title={audioMuted ? "Activar sonido" : "Silenciar juego"}
+            className="size-8 border-white/15 bg-black/35 px-0 text-muted-foreground hover:bg-black/50 hover:text-foreground"
+            onClick={() => setMuted(!audioMuted)}
+          >
+            {audioMuted ? (
+              <VolumeX className="size-4" aria-hidden />
+            ) : (
+              <Volume2 className="size-4" aria-hidden />
+            )}
+          </Button>
+          <Button
+            size="sm"
+            disabled={!daily || launching}
+            className="shrink-0 bg-amber-500 text-black hover:bg-amber-400"
+            onClick={() =>
+              daily &&
+              start({ ...daily, nickname: nickname.trim() || daily.nickname })
+            }
+          >
+            {launching ? "Entrando..." : "Jugar"}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 p-3 sm:gap-3.5 sm:p-4">

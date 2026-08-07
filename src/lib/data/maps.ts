@@ -35,7 +35,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Banana", "Apps", "Pit", "Arch", "Balcony", "Second Mid"],
     sites: ["A", "B"],
     blurb: "Guerra de utilidad. Banana define media partida.",
-    imagePath: "/maps/preview/infernocs2.jpg",
+    imagePath: "/maps/preview/infernocs2.webp",
   },
   {
     id: "nuke",
@@ -51,7 +51,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Outside", "Ramp", "Heaven", "Vents", "Secret", "Lobby"],
     sites: ["A", "B"],
     blurb: "Verticalidad pura. El CT que sabe rotar te come vivo.",
-    imagePath: "/maps/preview/nukecs2.jpeg",
+    imagePath: "/maps/preview/nukecs2.webp",
   },
   {
     id: "ancient",
@@ -115,7 +115,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Mid", "Squeaky", "Highway", "Checkers", "Z", "Vents"],
     sites: ["A", "B"],
     blurb: "Volvió al pool. Control de mid y de highway manda.",
-    imagePath: "/maps/preview/cachecs2.jpg",
+    imagePath: "/maps/preview/cachecs2.webp",
   },
   {
     id: "overpass",

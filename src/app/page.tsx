@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 import { HomeHeroArt } from "@/components/art/home-hero-art";
@@ -21,7 +22,15 @@ export default function HomePage() {
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[720px] flex-1 flex-col items-center justify-center px-4 py-4">
         <div className="flex w-full flex-col items-center gap-2">
           <div className="animate-hero-brand text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.42em] text-primary">
+            <Image
+              src="/brand/logo.webp"
+              alt="La Leyenda"
+              width={112}
+              height={112}
+              priority
+              className="mx-auto size-[clamp(4.5rem,14vw,7rem)] drop-shadow-[0_12px_40px_rgba(245,158,11,0.35)]"
+            />
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.42em] text-primary">
               Counter-Strike 2
             </p>
             <h1 className="mt-0.5 text-[clamp(2.2rem,6.5vw,3.6rem)] font-black uppercase leading-[0.88] tracking-[0.06em] drop-shadow-[0_8px_40px_rgba(0,0,0,0.85)]">

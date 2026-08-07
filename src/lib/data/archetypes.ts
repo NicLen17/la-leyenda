@@ -34,7 +34,7 @@ export const ROLES: RoleInfo[] = [
     tag: "LURK",
     description:
       "Jugás solo el flanco. Timing e info: aparecés cuando duele.",
-    image: "/ui/lurker.png",
+    image: "/ui/lurker.webp",
     bonuses: { gameSense: 5, clutch: 6, movement: 4 },
   },
   {
