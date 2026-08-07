@@ -51,27 +51,35 @@ type GameContextValue = {
 
 const GameContext = createContext<GameContextValue | null>(null);
 
-const LOADER_MS = 620;
+/** Big beats (season / market / retire) keep a short cinematic beat. */
+const LOADER_MS = 360;
+/** Event → outcome → next fires often; keep friction tiny. */
+const LOADER_BEAT_MS = 160;
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [runtime, setRuntime] = useState<GameRuntime>(INITIAL_RUNTIME);
   const [loading, setLoading] = useState(false);
 
   /**
-   * Every phase change goes through the CS-themed loader so screens never
-   * pop in abruptly.
+   * Phase changes go through the CS-themed loader so screens never pop in
+   * abruptly — duration depends on how often the beat repeats.
    */
   const transition = useCallback(
-    (updater: (current: GameRuntime) => GameRuntime, instant = false) => {
-      if (instant) {
+    (
+      updater: (current: GameRuntime) => GameRuntime,
+      instantOrMs: boolean | number = false,
+    ) => {
+      if (instantOrMs === true) {
         setRuntime(updater);
         return;
       }
+      const delay =
+        typeof instantOrMs === "number" ? instantOrMs : LOADER_MS;
       setLoading(true);
       window.setTimeout(() => {
         setRuntime(updater);
         setLoading(false);
-      }, LOADER_MS);
+      }, delay);
     },
     [],
   );
@@ -93,24 +101,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const choose = useCallback(
     (optionId: string) => {
-      transition((current) => {
-        const next = selectOption(current, optionId);
-        return next;
-      });
+      transition((current) => selectOption(current, optionId), LOADER_BEAT_MS);
     },
     [transition],
   );
 
   const finishMinigame = useCallback(
     (success: boolean) => {
-      transition((current) => resolveMinigame(current, success));
+      transition(
+        (current) => resolveMinigame(current, success),
+        LOADER_BEAT_MS,
+      );
     },
     [transition],
   );
 
   const finishRisk = useCallback(
     (success: boolean) => {
-      transition((current) => resolveRisk(current, success));
+      transition((current) => resolveRisk(current, success), LOADER_BEAT_MS);
     },
     [transition],
   );
@@ -118,7 +126,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const riskChance = pendingRiskChance(runtime);
 
   const next = useCallback(() => {
-    transition((current) => continueAfterOutcome(current));
+    transition((current) => continueAfterOutcome(current), LOADER_BEAT_MS);
   }, [transition]);
 
   const nextSeason = useCallback(() => {

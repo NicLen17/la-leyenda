@@ -11,6 +11,8 @@ type TeamLogoProps = {
   className?: string;
   /** Adds the animated sheen used when a crest first appears. */
   animate?: boolean;
+  /** Skip the brand-coloured plate (e.g. watermark usage). */
+  bare?: boolean;
 };
 
 function hashOf(value: string): number {
@@ -120,13 +122,19 @@ function GeneratedCrest({
 }
 
 /**
- * Prefers a local file in /public/teams/{id}.svg|png (logoPath), then falls
- * back to a generated letter crest. HLTV CDN logos 403'd; SVGs are stylised
- * brand-colour approximations for major orgs.
+ * Prefers a real crest in /public/teams/real-logo (logoPath), then falls back
+ * to a generated letter crest for orgs without artwork.
  */
-export function TeamLogo({ team, size = 44, className, animate }: TeamLogoProps) {
+export function TeamLogo({
+  team,
+  size = 44,
+  className,
+  animate,
+  bare = false,
+}: TeamLogoProps) {
   const [failed, setFailed] = useState(false);
   const src = team.logoPath ?? `/teams/${team.id}.svg`;
+  const pad = Math.max(4, Math.round(size * 0.12));
 
   if (failed) {
     return (
@@ -139,21 +147,51 @@ export function TeamLogo({ team, size = 44, className, animate }: TeamLogoProps)
     );
   }
 
+  if (bare) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        width={size}
+        height={size}
+        alt={`Logo de ${team.name}`}
+        className={cn(
+          "shrink-0 object-contain",
+          animate && "animate-crest-in",
+          className,
+        )}
+        style={{ width: size, height: size }}
+        onError={() => setFailed(true)}
+        draggable={false}
+      />
+    );
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      width={size}
-      height={size}
-      alt={`Logo de ${team.name}`}
+    <span
       className={cn(
-        "shrink-0 rounded-md object-contain",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border",
         animate && "animate-crest-in",
         className,
       )}
-      style={{ width: size, height: size }}
-      onError={() => setFailed(true)}
-      draggable={false}
-    />
+      style={{
+        width: size,
+        height: size,
+        padding: pad,
+        background: `linear-gradient(145deg, ${team.colors.secondary}f2 0%, ${team.colors.secondary} 55%, ${team.colors.primary}33 100%)`,
+        borderColor: `${team.colors.primary}66`,
+        boxShadow: `inset 0 0 0 1px ${team.colors.primary}22, 0 0 18px ${team.colors.primary}18`,
+      }}
+      title={team.name}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={`Logo de ${team.name}`}
+        className="h-full w-full object-contain"
+        onError={() => setFailed(true)}
+        draggable={false}
+      />
+    </span>
   );
 }

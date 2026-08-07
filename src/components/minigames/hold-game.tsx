@@ -2,96 +2,194 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { CsCrosshairReticle } from "@/components/minigames/cs-crosshair";
 import { Button } from "@/components/ui/button";
+import { playReady, playUtilitySuccess } from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type HoldGameProps = {
   /** Seconds the crosshair must stay inside the zone. */
   holdSeconds?: number;
+  /** Zone width/height as % of the arena (smaller = harder). */
   zoneSize?: number;
+  /** How fast the angle drifts, in arena % per second. */
+  driftSpeed?: number;
   onComplete: (success: boolean) => void;
 };
 
+type Point = { x: number; y: number };
+
+const ZONE_PAD = 8;
+
+function clampZone(value: number, size: number) {
+  const half = size / 2;
+  return Math.min(100 - ZONE_PAD - half, Math.max(ZONE_PAD + half, value));
+}
+
+function randomTarget(zoneSize: number): Point {
+  return {
+    x: clampZone(ZONE_PAD + Math.random() * (100 - ZONE_PAD * 2), zoneSize),
+    y: clampZone(ZONE_PAD + Math.random() * (100 - ZONE_PAD * 2), zoneSize),
+  };
+}
+
 /**
- * Crosshair hold: keep the reticle inside a drifting angle until the bar fills.
+ * Crosshair hold: keep the reticle inside a smoothly drifting angle until
+ * the bar fills. The zone seeks new waypoints continuously so it stays
+ * readable and followable instead of jumping in discrete hops.
  */
 export function HoldGame({
-  holdSeconds = 2.4,
-  zoneSize = 18,
+  holdSeconds = 2.6,
+  zoneSize = 12,
+  driftSpeed = 26,
   onComplete,
 }: HoldGameProps) {
   const [started, setStarted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [cursor, setCursor] = useState({ x: 50, y: 50 });
-  const [zone, setZone] = useState({ x: 42, y: 40 });
+  const [cursor, setCursor] = useState<Point>({ x: 50, y: 50 });
+  const [zone, setZone] = useState<Point>({ x: 50, y: 48 });
   const [inside, setInside] = useState(false);
+
   const finished = useRef(false);
   const insideRef = useRef(false);
+  const cursorRef = useRef<Point>({ x: 50, y: 50 });
+  const zoneRef = useRef<Point>({ x: 50, y: 48 });
+  const targetRef = useRef<Point>(randomTarget(zoneSize));
+  const progressRef = useRef(0);
+  const arenaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!started || finished.current) return;
-    const drift = window.setInterval(() => {
-      setZone((current) => ({
-        x: Math.min(78, Math.max(8, current.x + (Math.random() - 0.5) * 6)),
-        y: Math.min(72, Math.max(8, current.y + (Math.random() - 0.5) * 5)),
-      }));
-    }, 420);
-    return () => window.clearInterval(drift);
-  }, [started]);
 
-  useEffect(() => {
-    if (!started || finished.current) return;
-    const tick = window.setInterval(() => {
-      setProgress((current) => {
-        const next = insideRef.current
-          ? current + 100 / (holdSeconds * 20)
-          : Math.max(0, current - 35 / (holdSeconds * 20));
-        if (next >= 100 && !finished.current) {
-          finished.current = true;
-          window.setTimeout(() => onComplete(true), 280);
-          return 100;
-        }
-        return next;
-      });
-    }, 50);
-    return () => window.clearInterval(tick);
-  }, [holdSeconds, onComplete, started]);
+    let raf = 0;
+    let last = performance.now();
+    let retargetAt = last + 700 + Math.random() * 900;
 
-  const move = (clientX: number, clientY: number, el: HTMLDivElement) => {
+    const tick = (now: number) => {
+      if (finished.current) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+
+      if (now >= retargetAt) {
+        targetRef.current = randomTarget(zoneSize);
+        retargetAt = now + 650 + Math.random() * 1100;
+      }
+
+      const pos = zoneRef.current;
+      const target = targetRef.current;
+      const dx = target.x - pos.x;
+      const dy = target.y - pos.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 0.15) {
+        // Ease toward the waypoint: faster when far, softer when close.
+        const speed = driftSpeed * (0.55 + Math.min(1, dist / 28) * 0.7);
+        const step = Math.min(dist, speed * dt);
+        pos.x = clampZone(pos.x + (dx / dist) * step, zoneSize);
+        pos.y = clampZone(pos.y + (dy / dist) * step, zoneSize);
+        zoneRef.current = { x: pos.x, y: pos.y };
+        setZone({ x: pos.x, y: pos.y });
+      } else {
+        targetRef.current = randomTarget(zoneSize);
+      }
+
+      const half = zoneSize / 2;
+      const cur = cursorRef.current;
+      const hit =
+        cur.x >= pos.x - half &&
+        cur.x <= pos.x + half &&
+        cur.y >= pos.y - half &&
+        cur.y <= pos.y + half;
+      insideRef.current = hit;
+      setInside(hit);
+
+      const next = hit
+        ? progressRef.current + (100 * dt) / holdSeconds
+        : Math.max(0, progressRef.current - (48 * dt) / holdSeconds);
+      progressRef.current = next;
+      setProgress(next);
+
+      if (next >= 100) {
+        finished.current = true;
+        progressRef.current = 100;
+        setProgress(100);
+        playUtilitySuccess({ volume: 0.92 });
+        window.setTimeout(() => onComplete(true), 280);
+        return;
+      }
+
+      raf = window.requestAnimationFrame(tick);
+    };
+
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [driftSpeed, holdSeconds, onComplete, started, zoneSize]);
+
+  const move = (clientX: number, clientY: number) => {
+    const el = arenaRef.current;
+    if (!el || finished.current) return;
     const rect = el.getBoundingClientRect();
-    const x = ((clientX - rect.left) / rect.width) * 100;
-    const y = ((clientY - rect.top) / rect.height) * 100;
-    setCursor({ x, y });
-    const half = zoneSize / 2;
-    const hit =
-      x >= zone.x - half &&
-      x <= zone.x + half &&
-      y >= zone.y - half &&
-      y <= zone.y + half;
-    insideRef.current = hit;
-    setInside(hit);
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const next = {
+      x: ((clientX - rect.left) / rect.width) * 100,
+      y: ((clientY - rect.top) / rect.height) * 100,
+    };
+    cursorRef.current = next;
+    setCursor(next);
+  };
+
+  const begin = () => {
+    finished.current = false;
+    progressRef.current = 0;
+    const startZone = { x: 50, y: 48 };
+    zoneRef.current = startZone;
+    targetRef.current = randomTarget(zoneSize);
+    cursorRef.current = { x: 50, y: 50 };
+    insideRef.current = false;
+    setZone(startZone);
+    setCursor({ x: 50, y: 50 });
+    setProgress(0);
+    setInside(false);
+    setStarted(true);
+    playReady();
   };
 
   return (
     <div className="flex h-full flex-col gap-2">
       <div className="flex items-center justify-between text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>Hold de crosshair</span>
-        <span className="tabular-nums">{Math.min(100, Math.round(progress))}%</span>
+        <span className="tabular-nums">
+          {Math.min(100, Math.round(progress))}%
+        </span>
       </div>
+
+      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+        Seguí el ángulo con el mouse unos{" "}
+        <span className="font-semibold text-foreground">
+          {holdSeconds.toFixed(1)} s
+        </span>
+        . Si salís, la barra baja.
+      </p>
 
       {!started ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
           <p className="max-w-sm text-center text-sm text-muted-foreground">
-            Mantené la mira dentro del ángulo. Si salís, la barra baja.
+            El ángulo se mueve suave: trackealo sin perderlo hasta llenar la
+            barra.
           </p>
-          <Button size="lg" onClick={() => setStarted(true)}>
+          <Button size="lg" onClick={begin}>
             Empezar hold
           </Button>
         </div>
       ) : (
         <div
+          ref={arenaRef}
           className="relative min-h-0 flex-1 cursor-none overflow-hidden rounded-lg border border-border/60 bg-[#0a1018]"
-          onPointerMove={(event) => move(event.clientX, event.clientY, event.currentTarget)}
+          onPointerMove={(event) => move(event.clientX, event.clientY)}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            move(event.clientX, event.clientY);
+          }}
           onPointerLeave={() => {
             insideRef.current = false;
             setInside(false);
@@ -99,29 +197,28 @@ export function HoldGame({
         >
           <div
             className={cn(
-              "absolute rounded-full border-2 transition-colors",
-              inside ? "border-primary bg-primary/20" : "border-amber-400/70 bg-amber-400/10",
+              "absolute rounded-full border-2 will-change-transform",
+              inside
+                ? "border-sky-400 bg-sky-400/20"
+                : "border-amber-400/70 bg-amber-400/10",
             )}
             style={{
               width: `${zoneSize}%`,
-              height: `${zoneSize * 1.1}%`,
+              height: `${zoneSize * 1.05}%`,
               left: `${zone.x}%`,
               top: `${zone.y}%`,
               transform: "translate(-50%, -50%)",
             }}
           />
-          <div
-            className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2"
+          <CsCrosshairReticle
+            size={20}
+            className="z-10"
             style={{ left: `${cursor.x}%`, top: `${cursor.y}%` }}
-          >
-            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white" />
-            <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white" />
-            <div className="absolute inset-[7px] rounded-full border border-white/80" />
-          </div>
+          />
           <div className="absolute inset-x-3 bottom-3 h-2 overflow-hidden rounded-full bg-black/50">
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-75"
-              style={{ width: `${progress}%` }}
+              className="h-full rounded-full bg-sky-400 transition-[width] duration-75"
+              style={{ width: `${Math.min(100, progress)}%` }}
             />
           </div>
         </div>

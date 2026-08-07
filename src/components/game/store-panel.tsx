@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { playCoinCollect } from "@/lib/audio/sounds";
 import { STORE_ITEMS } from "@/lib/data/store";
 import { STORE_SEASON_LIMITS } from "@/lib/game/constants";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ function StoreRow({
       toast.error(result.error);
       return;
     }
+    playCoinCollect();
     toast.success(`Compraste ${item.name}`);
     if (result.caseToOpen) {
       onCaseReady(result.caseToOpen);
@@ -62,12 +64,13 @@ function StoreRow({
 
   return (
     <div className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-background/40 px-2.5 py-2">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border/50 bg-card">
+      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/50 bg-black/40">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={item.imagePath ?? "/store/case.svg"}
+          src={item.imagePath ?? "/ui/cs2-case.webp"}
           alt=""
-          className="size-7 object-contain"
+          className="size-11 object-contain"
+          draggable={false}
         />
       </div>
       <div className="min-w-0 flex-1">

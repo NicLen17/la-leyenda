@@ -25,7 +25,7 @@ export function CareerTimeline({ log }: CareerTimelineProps) {
         type="button"
         variant="secondary"
         size="sm"
-        className="h-6 px-2 text-[10px]"
+        className="h-9 gap-1.5 border border-border/70 px-3 text-xs font-bold"
         onClick={() => setOpen(true)}
       >
         Ver carrera

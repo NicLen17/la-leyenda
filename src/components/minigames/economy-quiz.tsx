@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  playMenuClick,
+  playReady,
+  playSoftFail,
+  playUtilitySuccess,
+} from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type EconomyQuizProps = {
@@ -64,13 +70,24 @@ export function EconomyQuiz({ onComplete }: EconomyQuizProps) {
 
   const current = questions[index];
 
+  useEffect(() => {
+    playReady();
+  }, []);
+
   const choose = (optionId: string, isCorrect: boolean) => {
     if (picked) return;
+    playMenuClick();
     setPicked(optionId);
-    const nextCorrect = correct + (isCorrect ? 1 : 0);
+    if (!isCorrect) {
+      playSoftFail({ volume: 0.4 });
+      window.setTimeout(() => onComplete(false), 650);
+      return;
+    }
+    playUtilitySuccess({ volume: 0.92 });
+    const nextCorrect = correct + 1;
     window.setTimeout(() => {
       if (index + 1 >= questions.length) {
-        onComplete(nextCorrect >= questions.length);
+        onComplete(true);
         return;
       }
       setCorrect(nextCorrect);
@@ -84,9 +101,17 @@ export function EconomyQuiz({ onComplete }: EconomyQuizProps) {
       <div className="flex items-center justify-between text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>Quiz de economía</span>
         <span className="tabular-nums">
-          {index + 1}/{questions.length}
+          {correct}/{questions.length} · pregunta {index + 1}/{questions.length}
         </span>
       </div>
+
+      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+        Necesitás acertar{" "}
+        <span className="font-semibold text-foreground">
+          {questions.length} de {questions.length}
+        </span>{" "}
+        · no podés fallar ninguna.
+      </p>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
         <p className="text-base font-bold leading-snug">{current.prompt}</p>

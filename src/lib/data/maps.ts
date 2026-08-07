@@ -1,8 +1,8 @@
 import type { CsMap } from "@/lib/types/game";
 
 /**
- * Map metadata + palettes. Atmospheric hero scenes are rendered in
- * `MapAtmosphere` (in-game vibe), not the radar PNGs under /public/maps.
+ * Map metadata + palettes. Hero art uses CS2 preview shots under
+ * /public/maps/preview (not radar overviews).
  */
 export const CS_MAPS: CsMap[] = [
   {
@@ -19,7 +19,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Mid", "Palace", "Connector", "Jungle", "Apps", "Ramp", "Window"],
     sites: ["A", "B"],
     blurb: "El clásico. Todo pasa por el control de mid y window.",
-    imagePath: "/maps/mirage.png",
+    imagePath: "/maps/preview/miragecs2.webp",
   },
   {
     id: "inferno",
@@ -35,7 +35,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Banana", "Apps", "Pit", "Arch", "Balcony", "Second Mid"],
     sites: ["A", "B"],
     blurb: "Guerra de utilidad. Banana define media partida.",
-    imagePath: "/maps/inferno.png",
+    imagePath: "/maps/preview/infernocs2.jpg",
   },
   {
     id: "nuke",
@@ -51,7 +51,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Outside", "Ramp", "Heaven", "Vents", "Secret", "Lobby"],
     sites: ["A", "B"],
     blurb: "Verticalidad pura. El CT que sabe rotar te come vivo.",
-    imagePath: "/maps/nuke.png",
+    imagePath: "/maps/preview/nukecs2.jpeg",
   },
   {
     id: "ancient",
@@ -67,7 +67,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Donut", "Cave", "Temple", "Mid", "Ramp", "Elbow"],
     sites: ["A", "B"],
     blurb: "Selva y ejecuciones milimétricas. Mid vale oro.",
-    imagePath: "/maps/ancient.png",
+    imagePath: "/maps/preview/ancient.webp",
   },
   {
     id: "anubis",
@@ -83,7 +83,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Canals", "Palace", "Bridge", "Connector", "Heaven", "Street"],
     sites: ["A", "B"],
     blurb: "Mapa de T. Si no retomás, no ganás halves de CT.",
-    imagePath: "/maps/anubis.png",
+    imagePath: "/maps/preview/anubis.webp",
   },
   {
     id: "dust2",
@@ -99,7 +99,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Long", "Catwalk", "Tunnels", "Short", "Pit", "Car"],
     sites: ["A", "B"],
     blurb: "El mapa que todos creen conocer. Duelos de AWP eternos.",
-    imagePath: "/maps/dust2.png",
+    imagePath: "/maps/preview/dust2.webp",
   },
   {
     id: "cache",
@@ -115,7 +115,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Mid", "Squeaky", "Highway", "Checkers", "Z", "Vents"],
     sites: ["A", "B"],
     blurb: "Volvió al pool. Control de mid y de highway manda.",
-    imagePath: "/maps/cache.png",
+    imagePath: "/maps/preview/cachecs2.jpg",
   },
   {
     id: "overpass",
@@ -131,7 +131,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Monster", "Toilets", "Bathrooms", "Connector", "Long", "Party"],
     sites: ["A", "B"],
     blurb: "Fuera del Active Duty pero sigue en Competitive.",
-    imagePath: "/maps/overpass.png",
+    imagePath: "/maps/preview/overpass.webp",
   },
   {
     id: "train",
@@ -147,7 +147,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Ivy", "Popdog", "Ladder", "Connector", "Z", "Alley"],
     sites: ["A", "B"],
     blurb: "Trenes, ángulos imposibles y retakes durísimos.",
-    imagePath: "/maps/train.png",
+    imagePath: "/maps/preview/train.webp",
   },
   {
     id: "vertigo",
@@ -163,7 +163,7 @@ export const CS_MAPS: CsMap[] = [
     callouts: ["Ramp", "Scaffolding", "Elevator", "Mid", "Sandbags", "B Stairs"],
     sites: ["A", "B"],
     blurb: "El rascacielos. Un mal paso y te caés literalmente.",
-    imagePath: "/maps/vertigo.png",
+    imagePath: "/maps/preview/vertigo.webp",
   },
 ];
 

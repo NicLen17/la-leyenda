@@ -13,7 +13,7 @@ export const STORE_ITEMS: StoreItem[] = [
     kind: "case",
     price: 2_500,
     grantsCase: true,
-    imagePath: "/store/case.svg",
+    imagePath: "/ui/cs2-case.webp",
   },
   {
     id: "case-dreams",
@@ -22,7 +22,7 @@ export const STORE_ITEMS: StoreItem[] = [
     kind: "case",
     price: 2_800,
     grantsCase: true,
-    imagePath: "/store/case.svg",
+    imagePath: "/ui/cs2-case-2.png",
   },
   {
     id: "case-kilowatt",
@@ -31,7 +31,7 @@ export const STORE_ITEMS: StoreItem[] = [
     kind: "case",
     price: 3_200,
     grantsCase: true,
-    imagePath: "/store/case.svg",
+    imagePath: "/ui/cs2-case-2.png",
   },
   {
     id: "skin-starter-ak",
@@ -89,7 +89,7 @@ export const STORE_ITEMS: StoreItem[] = [
     unique: true,
     peripheralSlot: "mouse",
     buff: { attribute: "reflexes", amount: 3 },
-    imagePath: "/store/mouse.svg",
+    imagePath: "/ui/mouse-pro.webp",
   },
   {
     id: "peri-keyboard",
@@ -100,7 +100,7 @@ export const STORE_ITEMS: StoreItem[] = [
     unique: true,
     peripheralSlot: "keyboard",
     buff: { attribute: "movement", amount: 2 },
-    imagePath: "/store/keyboard.svg",
+    imagePath: "/ui/keyboard.webp",
   },
   {
     id: "peri-monitor",
@@ -111,7 +111,7 @@ export const STORE_ITEMS: StoreItem[] = [
     unique: true,
     peripheralSlot: "monitor",
     buff: { attribute: "aim", amount: 3 },
-    imagePath: "/store/monitor.svg",
+    imagePath: "/ui/monitor.webp",
   },
   {
     id: "peri-headset",
@@ -122,7 +122,7 @@ export const STORE_ITEMS: StoreItem[] = [
     unique: true,
     peripheralSlot: "headset",
     buff: { attribute: "gameSense", amount: 3 },
-    imagePath: "/store/headset.svg",
+    imagePath: "/ui/headset-pro.png",
   },
 ];
 

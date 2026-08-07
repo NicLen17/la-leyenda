@@ -2,13 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  ShotResultPips,
+  type ShotResult,
+} from "@/components/minigames/shot-result";
 import { Button } from "@/components/ui/button";
+import { playGunshot, playReady, playSound } from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type FlickGameProps = {
   /** Targets the player must hit to pass. */
   required?: number;
-  totalTargets?: number;
   msPerTarget?: number;
   onComplete: (success: boolean) => void;
 };
@@ -27,39 +31,54 @@ function makeTarget(id: number, difficulty: number): Target {
 
 export function FlickGame({
   required = 4,
-  totalTargets = 6,
   msPerTarget = 900,
   onComplete,
 }: FlickGameProps) {
   const [started, setStarted] = useState(false);
   const [target, setTarget] = useState<Target | null>(null);
   const [index, setIndex] = useState(0);
-  const [hits, setHits] = useState(0);
+  const [results, setResults] = useState<Array<ShotResult | null>>(() =>
+    Array.from({ length: required }, () => null),
+  );
   const [missFlash, setMissFlash] = useState(false);
   const [timeLeft, setTimeLeft] = useState(msPerTarget);
   const finished = useRef(false);
+  const hitsRef = useRef(0);
 
   const advance = useCallback(
     (didHit: boolean) => {
-      setHits((current) => {
-        const nextHits = current + (didHit ? 1 : 0);
-        const nextIndex = index + 1;
+      if (finished.current) return;
 
-        if (nextIndex >= totalTargets) {
-          if (!finished.current) {
-            finished.current = true;
-            window.setTimeout(() => onComplete(nextHits >= required), 420);
-          }
-          setTarget(null);
-        } else {
-          setTarget(makeTarget(nextIndex, nextIndex));
-          setTimeLeft(msPerTarget);
-        }
-        setIndex(nextIndex);
-        return nextHits;
+      setResults((current) => {
+        const next = [...current];
+        const slot = next.findIndex((entry) => entry === null);
+        if (slot >= 0) next[slot] = didHit ? "hit" : "miss";
+        return next;
       });
+
+      if (!didHit) {
+        finished.current = true;
+        setMissFlash(true);
+        setTarget(null);
+        window.setTimeout(() => onComplete(false), 420);
+        return;
+      }
+
+      const nextHits = hitsRef.current + 1;
+      hitsRef.current = nextHits;
+      const nextIndex = index + 1;
+
+      if (nextHits >= required) {
+        finished.current = true;
+        setTarget(null);
+        window.setTimeout(() => onComplete(true), 420);
+      } else {
+        setTarget(makeTarget(nextIndex, nextIndex));
+        setTimeLeft(msPerTarget);
+      }
+      setIndex(nextIndex);
     },
-    [index, msPerTarget, onComplete, required, totalTargets],
+    [index, msPerTarget, onComplete, required],
   );
 
   useEffect(() => {
@@ -82,16 +101,21 @@ export function FlickGame({
     setStarted(true);
     setTarget(makeTarget(0, 0));
     setTimeLeft(msPerTarget);
+    playReady();
   };
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>Aim / Flick</span>
-        <span className="tabular-nums">
-          {hits}/{required} · objetivo {Math.min(index + 1, totalTargets)}/{totalTargets}
-        </span>
+        <ShotResultPips results={results} />
       </div>
+
+      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+        Necesitás{" "}
+        <span className="font-semibold text-foreground">{required}</span>{" "}
+        impactos seguidos · un fallo y termina.
+      </p>
 
       <div
         className={cn(
@@ -105,6 +129,7 @@ export function FlickGame({
         }}
         onClick={() => {
           if (started && target) {
+            playSound("helmet", { volume: 0.28 });
             setMissFlash(true);
             window.setTimeout(() => setMissFlash(false), 140);
             advance(false);
@@ -114,8 +139,8 @@ export function FlickGame({
         {!started && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <p className="max-w-xs text-sm text-muted-foreground">
-              Seis objetivos, menos de un segundo cada uno. Necesitás {required}{" "}
-              impactos para ganar el duelo.
+              {required} objetivos, menos de un segundo cada uno. Un miss y
+              perdés.
             </p>
             <Button size="sm" onClick={begin}>
               Empezar
@@ -137,6 +162,7 @@ export function FlickGame({
             }}
             onClick={(event) => {
               event.stopPropagation();
+              playGunshot();
               advance(true);
             }}
           >

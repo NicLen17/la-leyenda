@@ -3,6 +3,12 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  playMenuClick,
+  playReady,
+  playSoftFail,
+  playUtilitySuccess,
+} from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 import type { Side } from "@/lib/types/game";
 
@@ -46,13 +52,17 @@ export function CoinFlip({ onComplete }: CoinFlipProps) {
   const [outcome, setOutcome] = useState<Side | null>(null);
 
   const flip = (side: Side) => {
+    playMenuClick();
     setChoice(side);
     setFlipping(true);
+    playReady();
     const result: Side = Math.random() < 0.5 ? "ct" : "t";
 
     window.setTimeout(() => {
       setOutcome(result);
       setFlipping(false);
+      if (result === side) playUtilitySuccess({ volume: 0.92 });
+      else playSoftFail({ volume: 0.45 });
       window.setTimeout(() => onComplete(result === side), 1100);
     }, 1600);
   };
@@ -65,6 +75,10 @@ export function CoinFlip({ onComplete }: CoinFlipProps) {
         <span>Knife round</span>
         <span>50 / 50</span>
       </div>
+
+      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+        Elegí un lado. Si la moneda cae de tu lado, ganás · 50% de chance.
+      </p>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-lg border border-border/60 bg-card p-4">
         <div

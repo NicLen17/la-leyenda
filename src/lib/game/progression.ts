@@ -6,7 +6,6 @@ import type {
   StatEffects,
   Team,
   TeamOffer,
-  Tier,
 } from "@/lib/types/game";
 import {
   FAME_LEVELS,
@@ -14,7 +13,14 @@ import {
   LEGENDS,
   RETIREMENT_AGE,
 } from "./constants";
+import {
+  budgetFitsOffer,
+  evaluateMarketAccess,
+  qualifiesForTeam,
+} from "./market-gates";
 import { individualSkill, totalClutches } from "./simulator";
+
+export { evaluateMarketAccess } from "./market-gates";
 
 const ATTRIBUTE_KEYS: AttributeKey[] = [
   "aim",
@@ -122,18 +128,22 @@ export function applyAgeing(player: PlayerState): PlayerState {
 
 /* ----------------------------- transfer market ---------------------------- */
 
-/** Market value in "how much a roster would pay you per month". */
+/**
+ * What orgs pay for: mechanical level + recent rating + hardware (trophies).
+ * Fame is name recognition — useful, not a substitute for fragging.
+ * Agent buzz (`transferBoost`) is a small nudge, never the main lever.
+ */
 export function marketValue(player: PlayerState): number {
   const skill = individualSkill(player);
-  const ratingFactor = Math.pow(clamp(player.rating, 0.7, 1.5), 6);
-  const base = 700 + skill * 60;
-  const fameFactor = 1 + player.fame / 55;
-  const trophyFactor = 1 + player.trophies * 0.08 + player.majors * 0.35;
-  const ageFactor = player.age <= 21 ? 1.18 : player.age >= 29 ? 0.72 : 1;
-  const boost = 1 + player.transferBoost / 100;
+  const ratingFactor = Math.pow(clamp(player.rating, 0.75, 1.45), 5);
+  const base = 400 + skill * 90;
+  const fameFactor = 1 + player.fame / 85;
+  const trophyFactor = 1 + player.trophies * 0.12 + player.majors * 0.45;
+  const ageFactor = player.age <= 21 ? 1.2 : player.age >= 29 ? 0.7 : 1;
+  const buzz = 1 + clamp(player.transferBoost, -12, 18) / 220;
 
   return Math.round(
-    base * ratingFactor * fameFactor * trophyFactor * ageFactor * boost,
+    base * ratingFactor * fameFactor * trophyFactor * ageFactor * buzz,
   );
 }
 
@@ -143,49 +153,49 @@ function offerRole(team: Team, player: PlayerState): Role {
   return alternatives[Math.floor(Math.random() * alternatives.length)];
 }
 
-function eligibleTiers(player: PlayerState): Tier[] {
-  const skill = individualSkill(player);
-  const strength = skill + player.fame * 0.5 + player.rating * 30;
-
-  if (strength >= 130) return [1, 2];
-  if (strength >= 95) return [2, 1];
-  if (strength >= 65) return [2, 3];
-  return [3];
-}
-
 /**
- * Offers are generated from the player's real standing: a tier 1 org only calls
- * if the rating and fame justify the salary line.
+ * Offers are gated by real performance (rating / skill / Majors), then salary
+ * fit. Weak numbers → Tier 3 / academias only; stars unlock HLTV top desks.
  */
 export function generateOffers(player: PlayerState, count = 5): TeamOffer[] {
-  const tiers = eligibleTiers(player);
   const value = marketValue(player);
+  const access = evaluateMarketAccess(player);
 
-  const candidates = TEAMS.filter((team) => {
+  let candidates = TEAMS.filter((team) => {
     if (team.id === player.team.id) return false;
-    if (!tiers.includes(team.tier)) return false;
-    const perSeat = team.budgetMonthly / 5;
-    // Orgs will stretch to 1.8x their average seat for a star.
-    return perSeat * 1.8 >= value * 0.55;
+    if (!qualifiesForTeam(player, team)) return false;
+    return budgetFitsOffer(team, value);
   });
 
-  // Favour the player's own region so the career feels grounded.
+  // Always keep a living market: if gates + budget wipe the pool, fall back to T3.
+  if (candidates.length === 0) {
+    candidates = TEAMS.filter(
+      (team) => team.id !== player.team.id && team.tier === 3,
+    );
+  }
+
+  // Favour own region; bias toward the highest tier the player unlocked.
   const weighted = [...candidates].sort((a, b) => {
-    const regionBias = (team: Team) => (team.region === player.region ? -12 : 0);
-    return b.prestige + regionBias(b) - (a.prestige + regionBias(a));
+    const score = (team: Team) => {
+      const region = team.region === player.region ? 14 : 0;
+      const tierFit = team.tier === access.maxTier ? 10 : 0;
+      return team.prestige + region + tierFit;
+    };
+    return score(b) - score(a);
   });
 
   const picked: Team[] = [];
-  const pool = weighted.slice(0, Math.max(count + 6, 10));
+  const pool = weighted.slice(0, Math.max(count + 8, 12));
   while (picked.length < Math.min(count, pool.length)) {
-    const index = Math.floor(Math.random() * pool.length);
-    const [team] = pool.splice(index, 1);
+    // Soft weight: higher prestige more likely only when already unlocked.
+    const roll = Math.floor(Math.pow(Math.random(), 0.65) * pool.length);
+    const [team] = pool.splice(roll, 1);
     if (team) picked.push(team);
   }
 
   const offers = picked.map((team) => buildOffer(team, player, value));
 
-  // The current org always tables a renewal, like El Ídolo's market screen.
+  // Current org always tables a renewal so you can stay put.
   const renewalSalary = Math.round(
     Math.max(player.salaryMonthly, value * 0.85) *
       (player.benched ? 0.7 : 1),
@@ -288,13 +298,13 @@ export function computeTop20(player: PlayerState): number | null {
 
 export function shouldRetire(player: PlayerState): boolean {
   if (player.age >= RETIREMENT_AGE) return true;
-  // Nobody keeps a benched veteran with a broken rating.
-  if (player.age >= 28 && player.benched && player.rating < 0.95) return true;
-  // Long fade: low fame + low rating after a long career.
+  // Benched and cold — orgs stop calling; career ends early.
+  if (player.age >= 24 && player.benched && player.rating < 0.95) return true;
+  // Never broke through: no hardware, no name, fading demos.
   if (
-    player.age >= 29 &&
-    player.fame < 25 &&
-    player.rating < 1.0 &&
+    player.age >= 25 &&
+    player.fame < 22 &&
+    player.rating < 0.98 &&
     player.trophies === 0
   ) {
     return true;

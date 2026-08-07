@@ -129,6 +129,40 @@
   html {
     @apply font-sans;
   }
+
+  /* Themed scrollbars (WebKit + Firefox) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--primary) 70%, transparent)
+      color-mix(in oklab, var(--muted) 80%, transparent);
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: color-mix(in oklab, var(--muted) 65%, transparent);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--primary) 75%, #1a1208);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+    background-clip: content-box;
+    border: 2px solid transparent;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -216,6 +250,26 @@
   }
 }
 
+/** Floating +/- delta over sidebar attributes after a choice. */
+@keyframes float-delta {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.05);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-12px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(0.95);
+  }
+}
+
 @keyframes bar-grow {
   from {
     transform: scaleX(0);
@@ -225,8 +279,194 @@
   }
 }
 
+@keyframes case-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
+    transform: scale(1.03);
+  }
+}
+
+/** Risk gauge: needle lands on win — scale pop + sky victory glow. */
+@keyframes risk-land-win {
+  0% {
+    transform: scale(0.9);
+    filter: brightness(1.55);
+    box-shadow:
+      0 0 0 0 rgba(56, 189, 248, 0.75),
+      inset 0 0 0 0 rgba(52, 211, 153, 0.2);
+  }
+  45% {
+    transform: scale(1.07);
+    filter: brightness(1.2);
+    box-shadow:
+      0 0 48px 12px rgba(56, 189, 248, 0.5),
+      inset 0 0 36px 0 rgba(52, 211, 153, 0.22);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow:
+      0 0 28px 6px rgba(56, 189, 248, 0.28),
+      inset 0 0 24px 0 rgba(52, 211, 153, 0.12);
+  }
+}
+
+/** Risk gauge: needle lands on fail — tighter punch + rose defeat glow. */
+@keyframes risk-land-fail {
+  0% {
+    transform: scale(0.94);
+    filter: brightness(1.45);
+    box-shadow:
+      0 0 0 0 rgba(244, 63, 94, 0.7),
+      inset 0 0 0 0 rgba(239, 68, 68, 0.18);
+  }
+  40% {
+    transform: scale(1.05);
+    filter: brightness(1.12);
+    box-shadow:
+      0 0 42px 10px rgba(244, 63, 94, 0.48),
+      inset 0 0 32px 0 rgba(239, 68, 68, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow:
+      0 0 24px 4px rgba(244, 63, 94, 0.28),
+      inset 0 0 20px 0 rgba(239, 68, 68, 0.1);
+  }
+}
+
+/** Center label pulse after risk land. */
+@keyframes risk-result-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/** Hero → career handoff: zoom into black while the play-button sting plays. */
+@keyframes career-zoom-out {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.22);
+    filter: brightness(0.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.55);
+    filter: brightness(0);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-slide-from-right {
+  from {
+    opacity: 0;
+    transform: translate3d(18%, 8%, 0) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes hero-slide-from-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-18%, 8%, 0) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes hero-headshot-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28%, 0) scale(0.88);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes hero-float-alt {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, 12px, 0);
+  }
+}
+
+@keyframes hero-brand-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+    letter-spacing: 0.28em;
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    letter-spacing: 0.08em;
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.32s ease-out both;
+}
+
+.animate-hero-slide-left {
+  animation: hero-slide-from-right 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-slide-right {
+  animation: hero-slide-from-left 1.15s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.animate-hero-headshot {
+  animation: hero-headshot-in 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+}
+
+.animate-hero-float {
+  animation: hero-float 5.5s ease-in-out 1.2s infinite;
+}
+
+.animate-hero-float-alt {
+  animation: hero-float-alt 6.2s ease-in-out 1.35s infinite;
+}
+
+.animate-hero-brand {
+  animation: hero-brand-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
 }
 
 .animate-card-in {
@@ -254,9 +494,37 @@
   animation: stat-pop 0.4s ease-out;
 }
 
+.animate-float-delta {
+  animation: float-delta 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
 .animate-bar-grow {
   animation: bar-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: left;
+}
+
+.animate-case-pulse {
+  animation: case-pulse 1.6s ease-in-out infinite;
+}
+
+.animate-risk-land-win {
+  animation: risk-land-win 0.85s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+
+.animate-risk-land-fail {
+  animation: risk-land-fail 0.85s cubic-bezier(0.2, 1.15, 0.35, 1) both;
+}
+
+.animate-risk-result-pulse {
+  animation: risk-result-pulse 0.7s ease-in-out 0.15s 2 both;
+}
+
+.animate-career-zoom-out {
+  animation: career-zoom-out 2.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: center center;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -265,7 +533,27 @@
   .animate-crest-in,
   .animate-coin-flip,
   .animate-stat-pop,
-  .animate-bar-grow {
+  .animate-float-delta,
+  .animate-bar-grow,
+  .animate-case-pulse,
+  .animate-risk-land-win,
+  .animate-risk-land-fail,
+  .animate-risk-result-pulse,
+  .animate-career-zoom-out,
+  .animate-hero-slide-left,
+  .animate-hero-slide-right,
+  .animate-hero-headshot,
+  .animate-hero-float,
+  .animate-hero-float-alt,
+  .animate-hero-brand {
     animation: none;
+  }
+
+  .animate-career-zoom-out {
+    opacity: 0;
+  }
+
+  .animate-hero-headshot {
+    opacity: 0.9;
   }
 }

@@ -11,19 +11,71 @@ type PremierBandMeta = {
   id: PremierBand;
   min: number;
   label: string;
+  /** Bright accent (bars + number). */
   color: string;
   glow: string;
+  /** Dark plate behind the CS Rating parallelogram. */
+  plate: string;
 };
 
 /** CS2 Premier colour bands (grey → gold by CS Rating). */
 export const PREMIER_BANDS: PremierBandMeta[] = [
-  { id: "grey", min: 0, label: "Grey", color: "#9ca3af", glow: "#6b7280" },
-  { id: "lightBlue", min: 5_000, label: "Light Blue", color: "#7dd3fc", glow: "#38bdf8" },
-  { id: "blue", min: 10_000, label: "Blue", color: "#3b82f6", glow: "#2563eb" },
-  { id: "purple", min: 15_000, label: "Purple", color: "#a855f7", glow: "#9333ea" },
-  { id: "pink", min: 20_000, label: "Pink", color: "#ec4899", glow: "#db2777" },
-  { id: "red", min: 25_000, label: "Red", color: "#ef4444", glow: "#dc2626" },
-  { id: "gold", min: 30_000, label: "Gold", color: "#fbbf24", glow: "#f59e0b" },
+  {
+    id: "grey",
+    min: 0,
+    label: "Grey",
+    color: "#d1d5db",
+    glow: "#9ca3af",
+    plate: "#3f4550",
+  },
+  {
+    id: "lightBlue",
+    min: 5_000,
+    label: "Light Blue",
+    color: "#7dd3fc",
+    glow: "#38bdf8",
+    plate: "#2a4558",
+  },
+  {
+    id: "blue",
+    min: 10_000,
+    label: "Blue",
+    color: "#3b82f6",
+    glow: "#2563eb",
+    plate: "#1e3360",
+  },
+  {
+    id: "purple",
+    min: 15_000,
+    label: "Purple",
+    color: "#c084fc",
+    glow: "#a855f7",
+    plate: "#3b2260",
+  },
+  {
+    id: "pink",
+    min: 20_000,
+    label: "Pink",
+    color: "#f472b6",
+    glow: "#ec4899",
+    plate: "#5c1f45",
+  },
+  {
+    id: "red",
+    min: 25_000,
+    label: "Red",
+    color: "#f87171",
+    glow: "#ef4444",
+    plate: "#5c1a1a",
+  },
+  {
+    id: "gold",
+    min: 30_000,
+    label: "Gold",
+    color: "#facc15",
+    glow: "#fbbf24",
+    plate: "#5c4a12",
+  },
 ];
 
 type OgRankMeta = {

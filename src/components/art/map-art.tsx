@@ -140,21 +140,16 @@ function MarketFloor() {
 
 function CaseScene() {
   return (
-    <svg viewBox="0 0 100 88" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
-      <defs>
-        <linearGradient id="case-bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1f2937" />
-          <stop offset="100%" stopColor="#0b0f16" />
-        </linearGradient>
-      </defs>
-      <rect width="100" height="88" fill="url(#case-bg)" />
-      <rect x="30" y="30" width="40" height="30" rx="3" fill="#b8860b" stroke="#facc15" strokeWidth="1" />
-      <rect x="30" y="30" width="40" height="8" rx="3" fill="#8a6508" />
-      <rect x="44" y="36" width="12" height="10" rx="2" fill="#3f2f04" stroke="#facc15" strokeWidth="0.7" />
-      <path d="M50 40 l3.5 2.4 -1.3 4.1h-4.4l-1.3-4.1z" fill="#facc15" />
-      <circle cx="50" cy="52" r="2.4" fill="#1f2937" stroke="#facc15" strokeWidth="0.6" />
-      <rect width="100" height="88" fill="#05070a" fillOpacity="0.18" />
-    </svg>
+    <div className="relative h-full w-full bg-[#0b0f16]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#3f2f0a_0%,#0b0f16_70%)]" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/ui/cs2-case.webp"
+        alt=""
+        className="absolute left-1/2 top-1/2 h-[72%] w-auto -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_12px_28px_rgba(250,204,21,0.25)]"
+        draggable={false}
+      />
+    </div>
   );
 }
 

@@ -1,6 +1,16 @@
 "use client";
 
-import { RankBadges } from "@/components/art/rank-badge";
+import {
+  Award,
+  Crosshair,
+  Layers,
+  Star,
+  Swords,
+  Trophy,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { PremierCsPlate, RankBadges } from "@/components/art/rank-badge";
 import { TeamLogo } from "@/components/art/team-logo";
 import { AnimatedNumber } from "@/components/game/animated-number";
 import { MapPoolPanel } from "@/components/game/map-pool-panel";
@@ -14,10 +24,20 @@ import {
   careerYearsLeft,
 } from "@/lib/game/constants";
 import { getNextFameLevel } from "@/lib/game/progression";
-import { getOgRank } from "@/lib/game/ranks";
+import { getOgRank, getPremierBand } from "@/lib/game/ranks";
 import { adrOf, hsPercentOf, kastOf, totalClutches } from "@/lib/game/simulator";
 import { cn } from "@/lib/utils";
 import type { PlayerState } from "@/lib/types/game";
+
+type CareerKpi = {
+  label: string;
+  value: number;
+  grouped?: boolean;
+  icon: LucideIcon;
+  /** Tailwind tokens for icon chip + value tint */
+  chip: string;
+  valueClass: string;
+};
 
 type PlayerCardProps = {
   player: PlayerState;
@@ -41,6 +61,7 @@ export function PlayerCard({
     : null;
   const nextFame = getNextFameLevel(player.fame);
   const og = getOgRank(player.premierRating);
+  const premierBand = getPremierBand(player.premierRating);
   const clutches = totalClutches(player.career.clutches);
   const kd =
     player.career.deaths > 0
@@ -53,13 +74,18 @@ export function PlayerCard({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col gap-2 overflow-hidden rounded-xl border border-border/70 bg-card/80 p-3",
+        "flex h-full min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-xl border bg-card/80 p-3",
         className,
       )}
+      style={{
+        borderColor: `${player.team.colors.primary}55`,
+        background: `linear-gradient(180deg, ${player.team.colors.secondary}ee 0%, ${player.team.colors.secondary}66 28%, transparent 52%)`,
+        boxShadow: `inset 0 1px 0 ${player.team.colors.primary}28`,
+      }}
     >
       {/* identity */}
-      <header className="flex items-center gap-2">
-        <TeamLogo team={player.team} size={44} animate key={player.team.id} />
+      <header className="flex shrink-0 items-center gap-2">
+        <TeamLogo team={player.team} size={48} animate key={player.team.id} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h2 className="truncate text-lg font-black uppercase leading-none tracking-tight">
@@ -70,7 +96,10 @@ export function PlayerCard({
             </Badge>
           </div>
           <p className="truncate text-xs text-muted-foreground">
-            {player.team.name} · Tier {player.team.tier} · {player.nationality}
+            <span style={{ color: player.team.colors.primary }}>
+              {player.team.name}
+            </span>{" "}
+            · Tier {player.team.tier} · {player.nationality}
           </p>
           <p className="truncate text-[10px] text-muted-foreground">
             Peak Premier {player.peakPremierRating.toLocaleString("es-AR")} ·{" "}
@@ -80,7 +109,7 @@ export function PlayerCard({
         <RankBadges premierRating={player.premierRating} size="sm" />
       </header>
 
-      <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
+      <div className="flex shrink-0 items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Rating 2.1
@@ -98,15 +127,19 @@ export function PlayerCard({
             )}
           />
         </div>
-        <div className="text-right">
+        <div className="flex flex-col items-end gap-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Premier CS
           </p>
-          <AnimatedNumber
-            value={player.premierRating}
-            grouped
-            className="text-xl font-black leading-none text-primary"
-          />
+          <PremierCsPlate rating={player.premierRating}>
+            <span style={{ color: premierBand.color }}>
+              <AnimatedNumber
+                value={player.premierRating}
+                grouped
+                className="text-lg font-black italic tabular-nums leading-none tracking-tight"
+              />
+            </span>
+          </PremierCsPlate>
         </div>
       </div>
 
@@ -117,7 +150,7 @@ export function PlayerCard({
       )}
 
       {/* season + career end meter */}
-      <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+      <div className="shrink-0 rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Temporada {seasonYear}
@@ -146,30 +179,45 @@ export function PlayerCard({
         disabled={!onOpenCases || player.casesAvailable <= 0}
         onClick={onOpenCases}
         className={cn(
-          "flex w-full items-center justify-between rounded-md border px-2.5 py-2 text-left transition-colors",
+          "flex w-full shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-2 text-left transition-colors",
           player.casesAvailable > 0
-            ? "border-amber-500/40 bg-amber-500/10 hover:border-amber-400/70 hover:bg-amber-500/15"
+            ? "border-amber-500/50 bg-amber-500/10 hover:border-amber-400/80 hover:bg-amber-500/15"
             : "border-border/60 bg-background/40 opacity-70",
         )}
       >
-        <div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/ui/cs2-case.webp"
+          alt=""
+          className={cn(
+            "size-10 shrink-0 object-contain drop-shadow-md",
+            player.casesAvailable > 0 && "animate-case-pulse",
+          )}
+          draggable={false}
+        />
+        <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Cajas
           </p>
-          <p className="text-sm font-black tabular-nums">
-            <span className="text-amber-400">◆</span> {player.casesAvailable}{" "}
-            disponible{player.casesAvailable === 1 ? "" : "s"}
+          <p
+            className={cn(
+              "text-sm font-black tabular-nums",
+              player.casesAvailable > 0 && "animate-case-pulse text-amber-300",
+            )}
+          >
+            {player.casesAvailable} disponible
+            {player.casesAvailable === 1 ? "" : "s"}
           </p>
         </div>
         {player.casesAvailable > 0 && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+          <span className="animate-case-pulse shrink-0 rounded border border-amber-400/50 bg-amber-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
             Abrir
           </span>
         )}
       </button>
 
       {/* headline scoreboard */}
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid shrink-0 grid-cols-4 gap-1.5">
         {[
           { label: "K/D", value: kd, decimals: 2 },
           { label: "ADR", value: adrOf(player.career), decimals: 0 },
@@ -193,18 +241,18 @@ export function PlayerCard({
         ))}
       </div>
 
-      {/* attributes */}
-      <div className="min-h-0 space-y-1 overflow-hidden">
+      {/* attributes — label + value + trend (no bars; keeps rows even) */}
+      <div className="grid shrink-0 grid-cols-2 gap-x-3 gap-y-1 rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
         <StatBar label="Aim" value={player.aim} />
         <StatBar label="Reflejos" value={player.reflexes} />
-        <StatBar label="Game sense" value={player.gameSense} />
+        <StatBar label="Sense" title="Game sense" value={player.gameSense} />
         <StatBar label="Utility" value={player.utility} />
         <StatBar label="Clutch" value={player.clutch} />
         <StatBar label="Movement" value={player.movement} />
       </div>
 
       {/* fame */}
-      <div>
+      <div className="shrink-0">
         <div className="mb-1 flex items-baseline justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Fama
@@ -227,30 +275,91 @@ export function PlayerCard({
       </div>
 
       {/* career counters */}
-      <div className="grid grid-cols-3 gap-1.5 text-center">
-        {[
-          { label: "Rounds", value: player.career.roundsPlayed, grouped: true },
-          { label: "Kills", value: player.career.kills, grouped: true },
-          { label: "Clutches", value: clutches },
-          { label: "Aces", value: player.aces },
-          { label: "Trofeos", value: player.trophies },
-          { label: "Majors", value: player.majors },
-        ].map((stat) => (
-          <div key={stat.label}>
-            <AnimatedNumber
-              value={stat.value}
-              grouped={stat.grouped}
-              className="text-base font-bold"
-            />
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {stat.label}
-            </p>
-          </div>
-        ))}
+      <div className="grid shrink-0 grid-cols-3 gap-1.5">
+        {(
+          [
+            {
+              label: "Rounds",
+              value: player.career.roundsPlayed,
+              grouped: true,
+              icon: Layers,
+              chip: "border-cyan-500/40 bg-cyan-500/15 text-cyan-300",
+              valueClass: "text-cyan-300",
+            },
+            {
+              label: "Kills",
+              value: player.career.kills,
+              grouped: true,
+              icon: Crosshair,
+              chip: "border-rose-500/40 bg-rose-500/15 text-rose-300",
+              valueClass: "text-rose-300",
+            },
+            {
+              label: "Clutches",
+              value: clutches,
+              icon: Swords,
+              chip: "border-violet-500/40 bg-violet-500/15 text-violet-300",
+              valueClass: "text-violet-300",
+            },
+            {
+              label: "Aces",
+              value: player.aces,
+              icon: Star,
+              chip: "border-amber-500/40 bg-amber-500/15 text-amber-300",
+              valueClass: "text-amber-300",
+            },
+            {
+              label: "Trofeos",
+              value: player.trophies,
+              icon: Trophy,
+              chip: "border-yellow-500/40 bg-yellow-500/15 text-yellow-300",
+              valueClass: "text-yellow-300",
+            },
+            {
+              label: "Majors",
+              value: player.majors,
+              icon: Award,
+              chip: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
+              valueClass: "text-emerald-300",
+            },
+          ] satisfies CareerKpi[]
+        ).map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={stat.label}
+              className="rounded-md border border-border/60 bg-background/50 px-1.5 py-1.5 text-center"
+            >
+              <div
+                className={cn(
+                  "mx-auto mb-1 flex size-6 items-center justify-center rounded-md border",
+                  stat.chip,
+                )}
+              >
+                <Icon className="size-3" aria-hidden />
+              </div>
+              <AnimatedNumber
+                value={stat.value}
+                grouped={stat.grouped}
+                className={cn("text-base font-bold", stat.valueClass)}
+              />
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {stat.label}
+              </p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* money + maps + meta */}
-      <div className="mt-auto space-y-1.5">
+      {/* map pool — always visible, fills leftover sidebar space */}
+      <MapPoolPanel
+        mapStats={player.mapStats}
+        sidebar
+        className="min-h-0 flex-1"
+      />
+
+      {/* money + meta */}
+      <div className="mt-auto shrink-0 space-y-1.5">
         <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -270,8 +379,6 @@ export function PlayerCard({
             <p className="text-sm font-bold">{money(player.earnings)}</p>
           </div>
         </div>
-
-        <MapPoolPanel mapStats={player.mapStats} compact />
 
         {archetype && (
           <p className="truncate text-[11px] text-muted-foreground">

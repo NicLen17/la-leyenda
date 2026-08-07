@@ -47,6 +47,8 @@ const MATCH_EVENTS: GameEvent[] = [
         risk: true,
         effects: { movement: 2, tilt: 1 },
         outcomeText:
+          "Subís sin sonido, bajás uno desde arriba y el retake se desarma. Apuesta ganada.",
+        failText:
           "Te leen el timing. Morís en la escalera y el defuse llega tranquilo.",
       },
     ],
@@ -147,7 +149,7 @@ const MATCH_EVENTS: GameEvent[] = [
         label: "Ráfaga larga y transfer",
         description: "Controlar el retroceso y pasar al segundo cuerpo.",
         effects: {},
-        minigame: "spray",
+        minigame: "flick",
         successEffects: { aim: 4, fame: 3 },
         failEffects: { aim: -1, tilt: 2 },
         successText:
@@ -175,6 +177,47 @@ const MATCH_EVENTS: GameEvent[] = [
     ],
   },
   {
+    id: "mirage-window-line",
+    title: "Prefire line en Window",
+    description:
+      "Mirage, mid. Sabés que hay un AWPer en Window. Tenés que trackear la línea de peek sin abrir el spray todavía.",
+    category: "match",
+    mapId: "mirage",
+    scene: "map",
+    options: [
+      {
+        id: "track-line",
+        label: "Trackear la línea de Window",
+        description: "Crosshair path limpio, sin spray.",
+        effects: {},
+        minigame: "flick",
+        successEffects: { aim: 3, gameSense: 2, fame: 2 },
+        failEffects: { aim: -1, tilt: 1 },
+        successText:
+          "La línea te queda perfecta. El AWP asoma y ya estaba en tu cruz.",
+        failText:
+          "Te pasás de la línea. El AWP te pega antes de que corrijas.",
+        outcomeText: "",
+      },
+      {
+        id: "flash-mid",
+        label: "Flash de mid y pedir trade",
+        description: "Utilidad primero, duelo después.",
+        effects: { utility: 3, gameSense: 1 },
+        outcomeText:
+          "La flash ciega Window. Tu entry toma el duelo y mid queda vuestro.",
+      },
+      {
+        id: "rotate-underpass",
+        label: "Evitar el duelo: rotás Underpass",
+        description: "No hace falta pelear cada ángulo.",
+        effects: { gameSense: 2 },
+        outcomeText:
+          "El AWP se queda mirando mid vacío. Ustedes llegan a A con números.",
+      },
+    ],
+  },
+  {
     id: "ancient-eco-force",
     title: "Decisión económica en Ancient",
     description:
@@ -191,6 +234,8 @@ const MATCH_EVENTS: GameEvent[] = [
         effects: { gameSense: 1, form: 1 },
         outcomeText:
           "El force sale redondo. Ganan el round, roban tres AK y el rival queda en eco.",
+        failText:
+          "El force muere en la entrada. Dos rounds regalados y la economía queda hecha pedazos.",
       },
       {
         id: "full-eco",
@@ -234,7 +279,9 @@ const MATCH_EVENTS: GameEvent[] = [
         risk: true,
         effects: { chemistry: -2, aim: 1 },
         outcomeText:
-          "Conseguís un pick pero el rush muere sin vos. El IGL te lo marca en el review.",
+          "Abrís Long con el pick limpio y el equipo entra con números. El IGL te lo celebra en el timeout.",
+        failText:
+          "Morís solo en Long y el rush muere sin vos. El IGL te lo marca en el review.",
       },
       {
         id: "propose-split",
@@ -326,15 +373,15 @@ const MATCH_EVENTS: GameEvent[] = [
       {
         id: "awp-duel",
         label: "Hold y castigar el peek",
-        description: "Esperar el jiggle y pegarle a la cabeza.",
+        description: "Escaneá Long con el scope y clavá al que asome.",
         effects: {},
         minigame: "awpPeek",
         successEffects: { aim: 3, reflexes: 2, fame: 4, form: 1 },
         failEffects: { tilt: 2, fame: -1 },
         successText:
-          "Peek, click, body. Recogés su AWP y Long queda cerrado el resto del half.",
+          "Lo encontrás en el scope y lo bajás seco. Long queda cerrado el resto del half.",
         failText:
-          "Te gana el peek por un frame. El caster dice 'too slow' y duele.",
+          "No encontrás el peek a tiempo. El caster dice 'too slow' y duele.",
         outcomeText: "",
       },
       {
@@ -359,23 +406,24 @@ const MATCH_EVENTS: GameEvent[] = [
     id: "mirage-smoke-window",
     title: "Lineup de Window en Mirage",
     description:
-      "Ejecución a Mid. El coach te mira: si la smoke de Window no cierra, el AWP rival parte el rush. Tenés un intento limpio desde T spawn.",
+      "Ejecución a Mid. El coach te mira: si la smoke de Window no cierra, el AWP rival parte el rush. Tenés que recordar el lineup de memoria, como en el server.",
     category: "match",
     mapId: "mirage",
     scene: "map",
     options: [
       {
         id: "pixel-smoke",
-        label: "Tirar el lineup al pixel",
-        description: "Crosshair en la antena. Soltá en el timing exacto.",
+        label: "Recordar el lineup al pixel",
+        description:
+          "Memorizá la utilidad y el aim. En CS2 los lineups se ganan de memoria.",
         effects: {},
-        minigame: "smoke",
+        minigame: "lineup",
         successEffects: { utility: 4, gameSense: 2, fame: 2 },
         failEffects: { utility: -1, tilt: 1, chemistry: -1 },
         successText:
-          "Smoke perfecta. Mid queda ciego y entran con 5 vivos a Connector.",
+          "Lineup clavado de memoria. Mid queda ciego y entran con 5 vivos a Connector.",
         failText:
-          "La smoke abre un hueco. El AWP saca dos y la ejecución muere.",
+          "Te olvidaste el pixel. La smoke abre un hueco y el AWP saca dos.",
         outcomeText: "",
       },
       {
@@ -385,6 +433,74 @@ const MATCH_EVENTS: GameEvent[] = [
         effects: { chemistry: 2, utility: 1 },
         outcomeText:
           "La tira limpia. Vos pelearás el duelo de Mid con la utilidad hecha.",
+      },
+    ],
+  },
+  {
+    id: "inferno-molly-banana",
+    title: "Molly de Banana en Inferno",
+    description:
+      "Van a pelear Banana. El IGL pide la molotov de tip: si no la recordás, el CT vive en First y el round se traba.",
+    category: "match",
+    mapId: "inferno",
+    scene: "map",
+    options: [
+      {
+        id: "memory-molly",
+        label: "Tirar la molly de memoria",
+        description:
+          "Repasá el lineup en la cabeza: utilidad y pixel del crosshair.",
+        effects: {},
+        minigame: "lineup",
+        successEffects: { utility: 4, gameSense: 1, fame: 1 },
+        failEffects: { utility: -1, chemistry: -1, tilt: 1 },
+        successText:
+          "Molly perfecta. El CT sale quemado y Banana queda para el entry.",
+        failText:
+          "La molly cae corta. El CT sigue vivo y el rush muere en First.",
+        outcomeText: "",
+      },
+      {
+        id: "default-slow",
+        label: "Jugar default sin forzar Banana",
+        description: "Info mid y Apps, sin arriesgar la utility clave.",
+        effects: { gameSense: 2, chemistry: 1 },
+        outcomeText:
+          "El round se juega lento. No ganan Banana, pero tampoco regalan el mapa.",
+      },
+    ],
+  },
+  {
+    id: "dust2-flash-long",
+    title: "Flash de Long en Dust II",
+    description:
+      "Quieren romper Long. El AWPer pide la flash pop: tenés que acordarte del lineup o te come el peek de AWP.",
+    category: "match",
+    mapId: "dust2",
+    scene: "map",
+    options: [
+      {
+        id: "memory-flash",
+        label: "Flashear Long de memoria",
+        description:
+          "Memorizá el lineup: utilidad, callout y el pixel de la pared.",
+        effects: {},
+        minigame: "lineup",
+        successEffects: { utility: 3, reflexes: 1, fame: 1 },
+        failEffects: { utility: -1, tilt: 1 },
+        successText:
+          "Flash ciega el AWP. Long queda abierto y el entry entra limpio.",
+        failText:
+          "La flash sale corta. El AWP no se mueve y te saca en doors.",
+        outcomeText: "",
+      },
+      {
+        id: "fake-long",
+        label: "Fake Long y jugar Cat",
+        description: "Utility de ruido y rotás al boost de Cat.",
+        effects: { gameSense: 2, utility: 1 },
+        outcomeText:
+          "El fake funciona a medias. Cat se pelea, Long queda para después.",
       },
     ],
   },
@@ -438,7 +554,7 @@ const MATCH_EVENTS: GameEvent[] = [
       {
         id: "hold-bridge",
         label: "Mantener el crosshair firme",
-        description: "Hold milimétrico hasta que peakeen.",
+        description: "Trackeá el ángulo mientras se mueve y no lo pierdas.",
         effects: {},
         minigame: "hold",
         successEffects: { aim: 3, reflexes: 2, form: 1 },
@@ -594,6 +710,8 @@ const LOCKER_ROOM_EVENTS: GameEvent[] = [
         risk: true,
         effects: { benchRisk: 22, chemistry: -3, tilt: 1 },
         outcomeText:
+          "Aguantás el chaparrón. El mes siguiente rendís y el coach baja la presión.",
+        failText:
           "No cambiás nada. El de la academia debuta el mes que viene y vos mirás desde atrás.",
       },
     ],
@@ -822,7 +940,9 @@ const CAREER_EVENTS: GameEvent[] = [
         risk: true,
         effects: { transferBoost: 14, tilt: 1 },
         outcomeText:
-          "Te la jugás. Si rendís, tu valor se dispara; si no, perdiste la oferta segura.",
+          "Rendís en el Major y tu valor se dispara. Las ofertas vuelven más gordas.",
+        failText:
+          "No llegás al nivel. La oferta segura se cayó y el mercado se enfrió.",
       },
     ],
   },
@@ -1007,6 +1127,8 @@ const PERSONAL_EVENTS: GameEvent[] = [
         risk: true,
         effects: { tilt: 4, form: -2, aim: -2 },
         outcomeText:
+          "Aguantás la carga y llegás entero al Major. El coach nota que no te quebraste.",
+        failText:
           "Llegás vacío al Major. Tus números lo muestran y el coach también lo ve.",
       },
       {
@@ -1070,7 +1192,7 @@ const META_EVENTS: GameEvent[] = [
         label: "Encerrarte a recalibrar el spray",
         description: "Mil balas en el mapa de recoil.",
         effects: {},
-        minigame: "spray",
+        minigame: "flick",
         successEffects: { aim: 4, form: 2 },
         failEffects: { aim: -1, tilt: 1 },
         successText:
@@ -1157,7 +1279,7 @@ const TRANSFER_EVENTS: GameEvent[] = [
         id: "quiet",
         label: "Quedarte quieto y rendir",
         description: "Que hablen los números.",
-        effects: { form: 2, transferBoost: 8 },
+        effects: { form: 2, aim: 1, gameSense: 1 },
         outcomeText:
           "Dos torneos arriba de 1.15 y el teléfono no para de sonar.",
       },
@@ -1186,7 +1308,7 @@ const SCRIM_TOPICS = [
   },
   {
     topic: "los trades en el site",
-    fix: "chemistry" as const,
+    fix: "movement" as const,
   },
   {
     topic: "el control de mid",
@@ -1213,11 +1335,8 @@ function buildMapClutchEvents(): GameEvent[] {
               description: "Aislar el 1v1 y confiar en tu aim.",
               effects: {},
               minigame: situation.size >= 3 ? "flick" : "reaction",
-              successEffects: {
-                clutch: situation.reward,
-                fame: situation.reward,
-                form: 1,
-              },
+              // Runtime rewards come from rewards.ts (cores). Texts stay narrative.
+              successEffects: { clutch: situation.reward },
               failEffects: { tilt: 1, form: -1 },
               successText: `Ganás el ${situation.label} en ${map.name}. El clip se viraliza antes de que termine el mapa.`,
               failText: `Caés en el ${situation.label}. Faltó un duelo para la historia.`,
@@ -1228,14 +1347,14 @@ function buildMapClutchEvents(): GameEvent[] {
               id: "play-time",
               label: "Jugar el reloj y el post-plant",
               description: "Que la bomba trabaje por vos.",
-              effects: { gameSense: 2, clutch: 1 },
+              effects: { gameSense: 2, clutch: 2 },
               outcomeText: `Usás el tiempo a favor desde ${map.callouts[1] ?? "el fondo del site"}. El defuse nunca llega.`,
             },
             {
               id: "save",
               label: "Salvar el arma",
               description: "Round perdido, economía viva.",
-              effects: { gameSense: 1, fame: -1 },
+              effects: { gameSense: 2 },
               outcomeText: `Salvás desde ${map.callouts[2] ?? "spawn"}. Nadie aplaude, pero el próximo round compran full.`,
             },
           ],
@@ -1247,11 +1366,11 @@ function buildMapClutchEvents(): GameEvent[] {
 }
 
 function topicEffect(
-  key: "gameSense" | "utility" | "chemistry",
+  key: "gameSense" | "utility" | "movement",
   amount: number,
 ): StatEffects {
   if (key === "utility") return { utility: amount };
-  if (key === "chemistry") return { chemistry: amount };
+  if (key === "movement") return { movement: amount };
   return { gameSense: amount };
 }
 
@@ -1271,14 +1390,14 @@ function buildScrimEvents(): GameEvent[] {
             id: "propose-system",
             label: "Proponer un sistema propio",
             description: "Poner tu lectura sobre la mesa.",
-            effects: { ...topicEffect(topic.fix, 3), gameSense: 1, fame: 1 },
+            effects: { ...topicEffect(topic.fix, 3), gameSense: 1 },
             outcomeText: `Tu propuesta sobre ${topic.topic} se adopta. En dos semanas ${map.name} pasa a ser mapa de pick.`,
           },
           {
             id: "follow-coach",
             label: "Ejecutar lo que pide el coach",
             description: "Disciplina antes que ego.",
-            effects: { chemistry: 3, utility: 1 },
+            effects: { utility: 2, gameSense: 1, chemistry: 2 },
             outcomeText: `Ejecutan el plan del coach al pie de la letra. ${map.name} deja de ser un problema.`,
           },
           {
@@ -1286,7 +1405,7 @@ function buildScrimEvents(): GameEvent[] {
             label: "Saltarte la charla y entrenar aim",
             description: "Tus duelos, tu responsabilidad.",
             risk: true,
-            effects: { aim: 3, chemistry: -2 },
+            effects: { aim: 3, reflexes: 1, chemistry: -2 },
             outcomeText: `Tus duelos en ${map.callouts[0]} mejoran, pero el equipo sigue perdiendo el mapa igual.`,
           },
         ],
@@ -1309,21 +1428,22 @@ function buildRivalEvents(): GameEvent[] {
         label: "Calentar la previa",
         description: `Decir que le vas a ganar el duelo a ${pro.nickname}.`,
         risk: true,
-        effects: { fame: 6, tilt: 1, form: 1 },
+        effects: { aim: 2, form: 1, fame: 2, tilt: 1 },
         outcomeText: `La previa explota. Le ganás el duelo directo y ${pro.nickname} te da la mano al final.`,
+        failText: `La previa explota... en tu contra. ${pro.nickname} te gana el duelo y los casters no te lo perdonan.`,
       },
       {
         id: "respect",
         label: "Mostrar respeto y enfocarte",
         description: "Elogiar al rival y hablar del equipo.",
-        effects: { chemistry: 2, gameSense: 2, fame: 2 },
+        effects: { gameSense: 2, clutch: 1, chemistry: 2 },
         outcomeText: `Declaraciones prolijas y un mapa sólido. ${pro.nickname} te menciona como el que más le costó.`,
       },
       {
         id: "study",
         label: `Estudiar 20 demos de ${pro.nickname}`,
         description: "Aprender sus tendencias antes del cruce.",
-        effects: { gameSense: 3, utility: 2 },
+        effects: { gameSense: 3, utility: 2, movement: 1 },
         outcomeText: `Le leés tres timings seguidos. La preparación gana partidos que el aim no gana.`,
       },
     ],
@@ -1342,21 +1462,21 @@ function buildOrgEvents(): GameEvent[] {
         id: "listen",
         label: "Escuchar la propuesta",
         description: "Sin compromiso, solo información.",
-        effects: { transferBoost: 8, chemistry: -1 },
-        outcomeText: `Te sentás con ${team.name}. La charla no cierra nada pero te deja claro tu precio real.`,
+        effects: { transferBoost: 4, chemistry: -1 },
+        outcomeText: `Te sentás con ${team.name}. La charla no cierra nada: tu precio real lo marcan rating y demos.`,
       },
       {
         id: "commit-now",
         label: "Decir que sí a la primera",
         description: "Cerrar rápido antes de que cambien de idea.",
-        effects: { transferBoost: 4, salaryMonthly: 1_200, fame: 2 },
-        outcomeText: `Se corre que estás listo para salir. ${team.name} vuelve con una oferta formal en el mercado.`,
+        effects: { transferBoost: 3, fame: 1, chemistry: -2 },
+        outcomeText: `Se corre que estás listo para salir. ${team.name} vuelve en el mercado si tus números lo sostienen.`,
       },
       {
         id: "stay-focused",
         label: "Cortar la charla y competir",
         description: "Nada de ruido en plena temporada.",
-        effects: { chemistry: 3, form: 2 },
+        effects: { form: 2, gameSense: 1, chemistry: 2 },
         outcomeText: `Le pedís a tu agente que espere al offseason. El vestuario nota que no te distraés.`,
       },
     ],
@@ -1376,7 +1496,13 @@ function buildBenchEvents(): GameEvent[] {
         id: "take-minutes",
         label: "Aceptar y volver a jugar",
         description: "Rating por encima de cheque.",
-        effects: { form: 3, aim: 2, fame: 2, transferBoost: 10, salaryMonthly: -1_500 },
+        effects: {
+          form: 2,
+          aim: 2,
+          reflexes: 1,
+          movement: 1,
+          salaryMonthly: -1_500,
+        },
         outcomeText: `Volvés a competir con ${team.name}. Tres meses después tu rating vuelve a hablar por vos.`,
       },
       {
@@ -1384,7 +1510,7 @@ function buildBenchEvents(): GameEvent[] {
         label: "Aguantar el contrato en el banco",
         description: "Cobrar y esperar algo mejor.",
         risk: true,
-        effects: { form: -2, transferBoost: -6, earnings: 12_000 },
+        effects: { form: -2, transferBoost: -5, earnings: 12_000 },
         outcomeText: `Cobrás sin jugar. La plata entra, el ritmo se va y el mercado se enfría.`,
       },
     ],
@@ -1441,9 +1567,27 @@ export function pickEvent(player: PlayerState): GameEvent {
   const withMinigame = eligible.filter((event) =>
     event.options.some((option) => option.minigame),
   );
+  const withoutMinigame = eligible.filter(
+    (event) => !event.options.some((option) => option.minigame),
+  );
 
-  // Bias toward clutch / skill moments so minigames show up more often.
-  if (withMinigame.length > 0 && Math.random() < 0.48) {
+  // After exiting/finishing a minigame, prefer narrative-only events.
+  if (player.minigameLocked) {
+    const lockedPool =
+      withoutMinigame.length > 0 ? withoutMinigame : eligible;
+    const handWritten = lockedPool.filter(
+      (event) =>
+        !event.id.startsWith("clutch-") && !event.id.startsWith("scrim-"),
+    );
+    const pool =
+      handWritten.length > 0 && Math.random() < 0.55
+        ? handWritten
+        : lockedPool;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Light bias toward clutch / skill moments (kept modest for pacing).
+  if (withMinigame.length > 0 && Math.random() < 0.28) {
     return withMinigame[Math.floor(Math.random() * withMinigame.length)];
   }
 

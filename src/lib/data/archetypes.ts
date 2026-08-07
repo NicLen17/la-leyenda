@@ -7,6 +7,7 @@ export const ROLES: RoleInfo[] = [
     tag: "ENTRY",
     description:
       "Primer contacto. Abrís el site y comprás espacio con tu vida.",
+    image: "/ui/entry.webp",
     bonuses: { aim: 6, reflexes: 5, movement: 3 },
   },
   {
@@ -15,6 +16,7 @@ export const ROLES: RoleInfo[] = [
     tag: "AWP",
     description:
       "El rifle de $4750. Un pick tuyo vale el round entero.",
+    image: "/ui/awpcs.webp",
     bonuses: { aim: 7, reflexes: 4, clutch: 3 },
   },
   {
@@ -23,6 +25,7 @@ export const ROLES: RoleInfo[] = [
     tag: "IGL",
     description:
       "Llamás el default, leés la economía y gastás los timeouts.",
+    image: "/ui/igl.webp",
     bonuses: { gameSense: 8, utility: 5, clutch: 2 },
   },
   {
@@ -31,6 +34,7 @@ export const ROLES: RoleInfo[] = [
     tag: "LURK",
     description:
       "Jugás solo el flanco. Timing e info: aparecés cuando duele.",
+    image: "/ui/lurker.png",
     bonuses: { gameSense: 5, clutch: 6, movement: 4 },
   },
   {
@@ -39,6 +43,7 @@ export const ROLES: RoleInfo[] = [
     tag: "SUP",
     description:
       "Flashes, smokes y trades. El equipo brilla porque vos lo sostenés.",
+    image: "/ui/support.webp",
     bonuses: { utility: 8, gameSense: 4, aim: 2 },
   },
 ];
@@ -80,7 +85,7 @@ export const ARCHETYPES: Archetype[] = [
     tag: "NADES",
     description: "+9 Utility · +3 Game Sense",
     flavour:
-      "Tenés un lineup para cada ángulo. Tus molotovs y one-way smokes ganan rounds sin disparar.",
+      "Memorizás cada lineup: smokes, molotovs y flashes. Ganás rounds sin disparar porque te acordás del pixel.",
     bonuses: { utility: 9, gameSense: 3 },
   },
   {

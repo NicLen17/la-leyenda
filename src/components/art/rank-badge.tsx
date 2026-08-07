@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { OG_RANKS, getOgRank, getPremierBand } from "@/lib/game/ranks";
 import { cn } from "@/lib/utils";
 import type { OgRankId, PremierBand } from "@/lib/types/game";
@@ -181,6 +183,62 @@ function OgBadge({ rank, size }: { rank: OgRankId; size: number }) {
         {meta.short}
       </text>
     </svg>
+  );
+}
+
+/**
+ * CS2 CS Rating plate: slanted parallelogram with dual accent bars,
+ * coloured by Premier band (grey → gold).
+ */
+export function PremierCsPlate({
+  rating,
+  className,
+  children,
+}: {
+  rating: number;
+  className?: string;
+  /** Optional animated number node; defaults to a static formatted rating. */
+  children?: ReactNode;
+}) {
+  const band = getPremierBand(rating);
+
+  return (
+    <div
+      className={cn(
+        "relative inline-flex items-stretch overflow-hidden",
+        className,
+      )}
+      title={`Premier ${rating.toLocaleString("es-AR")} · ${band.label}`}
+      style={{
+        transform: "skewX(-14deg)",
+        background: `linear-gradient(180deg, ${band.plate} 0%, color-mix(in srgb, ${band.plate} 75%, #0a0e14) 100%)`,
+        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${band.color} 35%, transparent), 0 0 14px color-mix(in srgb, ${band.glow} 22%, transparent)`,
+      }}
+    >
+      <div className="flex shrink-0 items-stretch gap-[3px] py-1.5 pl-2 pr-1.5">
+        <span
+          className="w-[3px] self-stretch rounded-[1px]"
+          style={{ backgroundColor: band.color }}
+        />
+        <span
+          className="w-[2px] self-stretch rounded-[1px] opacity-85"
+          style={{ backgroundColor: band.color }}
+        />
+      </div>
+      <div
+        className="flex items-center pr-3 pl-0.5"
+        style={{ transform: "skewX(14deg)" }}
+      >
+        {children ?? (
+          <span
+            className="text-lg font-black italic tabular-nums leading-none tracking-tight"
+            style={{ color: band.color }}
+          >
+            {rating.toLocaleString("es-AR")}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 

@@ -16,12 +16,15 @@ import type {
   CareerResult,
   CareerSetup,
   CsCase,
+  EventCategory,
   GameEvent,
   GamePhase,
   EventOption,
+  HighlightKind,
   OutcomeKind,
   PlayerState,
   RivalPlayer,
+  SeasonHighlight,
   SeasonSummary,
   StatEffects,
   Team,
@@ -48,6 +51,13 @@ import {
   riskSuccessChance,
   shouldRetire,
 } from "./progression";
+import {
+  minigameRewards,
+  riskFailEffects,
+  riskSuccessEffects,
+  sanitizeCareerEffects,
+  seriesPerformanceGrowth,
+} from "./rewards";
 import {
   emptyMapStats,
   getOgRank,
@@ -116,14 +126,47 @@ function classifyOutcome(
   if (option.id.includes("transfer") || option.id.includes("sign")) {
     return "transfer";
   }
-  if (
-    option.minigame === "spray" ||
-    option.minigame === "hold" ||
-    option.minigame === "smoke"
-  ) {
+  if (option.minigame === "hold" || option.minigame === "lineup") {
     return "training";
   }
   return "neutral";
+}
+
+function highlightKindFromCategory(category: EventCategory): HighlightKind {
+  switch (category) {
+    case "lockerRoom":
+      return "locker";
+    case "career":
+      return "career";
+    case "personal":
+      return "personal";
+    case "match":
+      return "match";
+    case "team":
+      return "team";
+    case "transfer":
+      return "transfer";
+    case "meta":
+      return "meta";
+    default:
+      return "neutral";
+  }
+}
+
+function highlightKindForEvent(
+  category: EventCategory,
+  outcomeKind: OutcomeKind,
+): HighlightKind {
+  if (outcomeKind !== "neutral") return outcomeKind;
+  return highlightKindFromCategory(category);
+}
+
+function pushHighlight(
+  highlights: SeasonHighlight[],
+  text: string,
+  kind: HighlightKind,
+): SeasonHighlight[] {
+  return [...highlights, { text, kind }];
 }
 
 function pickRival(setup: CareerSetup): RivalPlayer {
@@ -206,6 +249,7 @@ export function createPlayer(setup: CareerSetup): PlayerState {
     usedEventIds: [],
     seasonHighlights: [],
     isDaily: setup.isDaily,
+    minigameLocked: false,
   };
 
   const roleInfo = ROLES.find((entry) => entry.id === setup.role);
@@ -255,6 +299,12 @@ export function selectOption(
   );
   if (!option) return runtime;
 
+  // Already left/finished a minigame this split — no second skill check.
+  if (option.minigame && runtime.state.minigameLocked) {
+    const { minigame: _minigame, ...withoutSkill } = option;
+    return resolveOption(runtime, withoutSkill, null);
+  }
+
   if (option.minigame) {
     return { ...runtime, phase: "minigame", pendingOption: option };
   }
@@ -289,63 +339,6 @@ export function pendingRiskChance(runtime: GameRuntime): number {
   return riskSuccessChance(runtime.state);
 }
 
-const ATTR_KEYS: AttributeKey[] = [
-  "aim",
-  "reflexes",
-  "gameSense",
-  "utility",
-  "clutch",
-  "movement",
-];
-
-/** When a risk option has no failEffects, invent a harsher fallback. */
-function invertRiskEffects(effects: StatEffects): StatEffects {
-  const fail: StatEffects = { tilt: 2, form: -1 };
-  for (const key of ATTR_KEYS) {
-    const value = effects[key];
-    if (typeof value === "number" && value > 0) fail[key] = -1;
-  }
-  if (typeof effects.fame === "number" && effects.fame > 0) {
-    fail.fame = -Math.max(1, Math.ceil(effects.fame / 2));
-  }
-  if (typeof effects.chemistry === "number") {
-    fail.chemistry = Math.min(-2, -Math.abs(effects.chemistry));
-  } else {
-    fail.chemistry = -1;
-  }
-  if (typeof effects.benchRisk === "number" && effects.benchRisk > 0) {
-    fail.benchRisk = effects.benchRisk + 8;
-  } else {
-    fail.benchRisk = 10;
-  }
-  if (typeof effects.earnings === "number" && effects.earnings > 0) {
-    fail.earnings = -Math.round(effects.earnings * 0.35);
-  }
-  if (typeof effects.transferBoost === "number" && effects.transferBoost > 0) {
-    fail.transferBoost = -Math.max(4, Math.ceil(effects.transferBoost / 2));
-  }
-  return fail;
-}
-
-/** Soften a purely-negative risk option when the gauge lands on success. */
-function softenRiskEffects(effects: StatEffects): StatEffects {
-  const soft: StatEffects = { ...effects };
-  if (typeof soft.tilt === "number" && soft.tilt > 0) {
-    soft.tilt = Math.max(0, soft.tilt - 1);
-  }
-  if (typeof soft.benchRisk === "number" && soft.benchRisk > 0) {
-    soft.benchRisk = Math.max(0, Math.round(soft.benchRisk * 0.45));
-  }
-  if (typeof soft.chemistry === "number" && soft.chemistry < 0) {
-    soft.chemistry = Math.ceil(soft.chemistry / 2);
-  }
-  if (typeof soft.form === "number" && soft.form < 0) {
-    soft.form = 0;
-  }
-  soft.fame = (soft.fame ?? 0) + 1;
-  return soft;
-}
-
 function resolveOption(
   runtime: GameRuntime,
   option: EventOption,
@@ -358,28 +351,47 @@ function resolveOption(
   let outcomeText = option.outcomeText;
 
   if (fromRisk && rollSuccess === true) {
-    const base =
-      option.successEffects ??
-      (option.failEffects ? option.effects : softenRiskEffects(option.effects));
-    state = applyEffects(state, base);
-    // Don't reuse outcomeText — many risk blurbs narrate the bad path only.
+    state = applyEffects(
+      state,
+      sanitizeCareerEffects(riskSuccessEffects(option)),
+    );
+    // outcomeText is the success blurb for risk options; fail uses failText.
+    // Parens required: ?? cannot mix with || without grouping.
     outcomeText =
       option.successText ??
-      "La jugada sale. El riesgo valió la pena.";
+      (option.outcomeText || "La jugada sale. El riesgo valió la pena.");
   } else if (fromRisk && rollSuccess === false) {
-    const fail = option.failEffects ?? invertRiskEffects(option.effects);
-    state = applyEffects(state, fail);
+    state = applyEffects(
+      state,
+      sanitizeCareerEffects(riskFailEffects(option)),
+    );
+    // Never fall back to outcomeText — it often narrates the win path.
     outcomeText =
-      option.failText ??
-      (option.outcomeText ||
-        "La jugada no sale. Te sale el tiro por la culata.");
+      option.failText || "La jugada no sale. Te sale el tiro por la culata.";
+  } else if (option.minigame && rollSuccess !== null) {
+    // Skill checks use the CS training table — not authored fame/market spam.
+    const rewards = minigameRewards(option.minigame);
+    state = applyEffects(state, sanitizeCareerEffects(option.effects));
+    state = applyEffects(
+      state,
+      rollSuccess ? rewards.success : rewards.fail,
+    );
+    outcomeText = rollSuccess
+      ? (option.successText ?? option.outcomeText)
+      : (option.failText ?? option.outcomeText);
   } else {
-    state = applyEffects(state, option.effects);
+    state = applyEffects(state, sanitizeCareerEffects(option.effects));
     if (rollSuccess === true) {
-      state = applyEffects(state, option.successEffects ?? {});
+      state = applyEffects(
+        state,
+        sanitizeCareerEffects(option.successEffects ?? {}),
+      );
       outcomeText = option.successText ?? option.outcomeText;
     } else if (rollSuccess === false) {
-      state = applyEffects(state, option.failEffects ?? {});
+      state = applyEffects(
+        state,
+        sanitizeCareerEffects(option.failEffects ?? {}),
+      );
       outcomeText = option.failText ?? option.outcomeText;
     }
   }
@@ -415,6 +427,11 @@ function resolveOption(
   state = refreshRanks(state);
   const outcomeKind = classifyOutcome(option, rollSuccess, caseItem);
 
+  // Leaving or finishing a minigame locks further ones for this split.
+  if (option.minigame) {
+    state = { ...state, minigameLocked: true };
+  }
+
   return {
     ...runtime,
     phase: "outcome",
@@ -422,7 +439,11 @@ function resolveOption(
     state: {
       ...state,
       usedEventIds: [...state.usedEventIds, runtime.currentEvent.id],
-      seasonHighlights: [...state.seasonHighlights, outcomeText],
+      seasonHighlights: pushHighlight(
+        state.seasonHighlights,
+        outcomeText,
+        highlightKindForEvent(runtime.currentEvent.category, outcomeKind),
+      ),
     },
     lastOutcome: outcomeText,
     lastOutcomeKind: outcomeKind,
@@ -510,7 +531,7 @@ function resolveSeason(runtime: GameRuntime): GameRuntime {
     lastSeries: series,
   };
 
-  // Performance moves fame, bench risk and morale.
+  // Results → reputation & role security. Mechanics come from the box score.
   const fameSwing =
     (series.won ? 10 : 0) +
     (series.isMajor && series.won ? 14 : 0) +
@@ -522,6 +543,7 @@ function resolveSeason(runtime: GameRuntime): GameRuntime {
     fame: fameSwing,
     form: seasonRating >= 1.1 ? 1 : seasonRating < 0.95 ? -1 : 0,
     benchRisk: seasonRating < 0.95 ? 14 : seasonRating > 1.12 ? -12 : -4,
+    ...seriesPerformanceGrowth(state, seasonRating, series, stats),
   });
 
   state.hltvTop20 = computeTop20(state);
@@ -542,20 +564,22 @@ function resolveSeason(runtime: GameRuntime): GameRuntime {
     const graffiti = getGraffitiById(milestone.id);
     if (graffiti && !state.graffiti.some((entry) => entry.id === graffiti.id)) {
       state.graffiti = [...state.graffiti, graffiti];
-      state.seasonHighlights = [
-        ...state.seasonHighlights,
+      state.seasonHighlights = pushHighlight(
+        state.seasonHighlights,
         `Valve te dio el graffiti "${graffiti.name}" (${graffiti.reason}).`,
-      ];
+        "graffiti",
+      );
     }
   }
 
   // Benching happens when the risk piles up and the numbers back it.
   if (state.benchRisk >= 75 && seasonRating < 1.0) {
     state.benched = true;
-    state.seasonHighlights = [
-      ...state.seasonHighlights,
+    state.seasonHighlights = pushHighlight(
+      state.seasonHighlights,
       `${state.team.name} te manda al banco. La organización busca reemplazo.`,
-    ];
+      "bench",
+    );
   } else if (state.benched && seasonRating >= 1.05) {
     state.benched = false;
   }
@@ -659,10 +683,14 @@ export function continueAfterSummary(runtime: GameRuntime): GameRuntime {
     };
   }
 
+  // New event batch: skill checks are available again.
+  const nextState = { ...state, minigameLocked: false };
+
   return {
     ...runtime,
     phase: "event",
-    currentEvent: pickEvent(state),
+    state: nextState,
+    currentEvent: pickEvent(nextState),
     eventsLeftInSeason: EVENTS_PER_SEASON,
   };
 }
@@ -686,6 +714,7 @@ export function acceptOffer(
     benchRisk: offer.benchRisk ? 45 : 10,
     chemistry: staying ? runtime.state.chemistry : -2,
     transferBoost: 0,
+    minigameLocked: false,
   };
 
   state = refreshRanks(applyEffects(state, { fame: offer.fameDelta }));
@@ -702,9 +731,12 @@ export function acceptOffer(
     state: {
       ...state,
       seasonHighlights: [
-        staying
-          ? `Renovás con ${offer.team.name} por $${offer.salaryMonthly.toLocaleString("es-AR")}/mes.`
-          : `Fichás por ${offer.team.name}: $${offer.salaryMonthly.toLocaleString("es-AR")}/mes durante ${offer.years} año(s). ${note}`,
+        {
+          text: staying
+            ? `Renovás con ${offer.team.name} por $${offer.salaryMonthly.toLocaleString("es-AR")}/mes.`
+            : `Fichás por ${offer.team.name}: $${offer.salaryMonthly.toLocaleString("es-AR")}/mes durante ${offer.years} año(s). ${note}`,
+          kind: "transfer" as const,
+        },
       ],
     },
     offers: [],

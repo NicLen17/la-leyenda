@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ACTIVE_DUTY } from "@/lib/data/maps";
+import { ACTIVE_DUTY, getMapById } from "@/lib/data/maps";
 import {
   mapAvgAdr,
   mapAvgRating,
@@ -19,8 +19,10 @@ import type { MapCareerStat } from "@/lib/types/game";
 
 type MapPoolPanelProps = {
   mapStats: MapCareerStat[];
-  /** Compact strip for the player card (opens full dialog). */
+  /** Compact strip that opens the full dialog (e.g. retirement). */
   compact?: boolean;
+  /** Denser layout for the always-visible player sidebar. */
+  sidebar?: boolean;
   className?: string;
 };
 
@@ -156,22 +158,29 @@ function buildBoard(mapStats: MapCareerStat[]) {
   });
 }
 
+/** Only maps the player has already played — keeps the sidebar list compact. */
+function playedBoard(board: ReturnType<typeof buildBoard>) {
+  return board.filter((entry) => entry.played > 0);
+}
+
 export function MapPoolPanel({
   mapStats,
   compact = false,
+  sidebar = false,
   className,
 }: MapPoolPanelProps) {
   const [open, setOpen] = useState(false);
   const board = useMemo(() => buildBoard(mapStats), [mapStats]);
+  const activeBoard = useMemo(() => playedBoard(board), [board]);
   const sorted = useMemo(
     () =>
-      [...board].sort((a, b) => {
+      [...activeBoard].sort((a, b) => {
         if (b.played !== a.played) return b.played - a.played;
         return b.winRate - a.winRate;
       }),
-    [board],
+    [activeBoard],
   );
-  const playedAny = board.some((entry) => entry.played > 0);
+  const playedAny = activeBoard.length > 0;
 
   if (compact) {
     return (
@@ -190,7 +199,7 @@ export function MapPoolPanel({
             </p>
             <p className="text-[11px] font-bold">
               {playedAny
-                ? `${board.reduce((s, m) => s + m.wins, 0)}W / ${board.reduce((s, m) => s + m.played, 0)} mapas`
+                ? `${activeBoard.reduce((s, m) => s + m.wins, 0)}W / ${activeBoard.reduce((s, m) => s + m.played, 0)} mapas`
                 : "Sin mapas aún"}
             </p>
           </div>
@@ -202,7 +211,7 @@ export function MapPoolPanel({
             <DialogHeader>
               <DialogTitle>Mapas · Active Duty</DialogTitle>
             </DialogHeader>
-            <MapPoolContent board={board} sorted={sorted} />
+            <MapPoolContent board={activeBoard} sorted={sorted} />
           </DialogContent>
         </Dialog>
       </>
@@ -210,8 +219,33 @@ export function MapPoolPanel({
   }
 
   return (
-    <section className={cn("space-y-2", className)}>
-      <MapPoolContent board={board} sorted={sorted} />
+    <section
+      className={cn(
+        "flex min-h-0 flex-col rounded-md border border-border/60 bg-background/50",
+        sidebar ? "overflow-hidden" : "space-y-2 p-2",
+        className,
+      )}
+    >
+      {sidebar && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-2.5 py-1.5">
+          <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+            Mapas · Actividad
+          </p>
+          <p className="text-[10px] font-bold tabular-nums text-primary">
+            {playedAny
+              ? `${activeBoard.reduce((s, m) => s + m.wins, 0)}W / ${activeBoard.reduce((s, m) => s + m.played, 0)}`
+              : "—"}
+          </p>
+        </div>
+      )}
+      <div
+        className={cn(
+          "min-h-0 flex-1",
+          sidebar && (playedAny ? "overflow-y-auto p-2" : "p-2"),
+        )}
+      >
+        <MapPoolContent board={activeBoard} sorted={sorted} dense={sidebar} />
+      </div>
     </section>
   );
 }
@@ -219,45 +253,85 @@ export function MapPoolPanel({
 function MapPoolContent({
   board,
   sorted,
+  dense = false,
 }: {
   board: ReturnType<typeof buildBoard>;
   sorted: ReturnType<typeof buildBoard>;
+  dense?: boolean;
 }) {
+  if (board.length === 0) {
+    return (
+      <p
+        className={cn(
+          "text-center text-muted-foreground",
+          dense ? "py-4 text-[11px]" : "py-6 text-sm",
+        )}
+      >
+        Todavía no jugaste ningún mapa.
+      </p>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      <MapRadar
-        values={board.map((entry) => (entry.played > 0 ? entry.winRate : 0))}
-        labels={board.map((entry) => entry.mapName)}
-      />
-      <div className="space-y-1">
-        {sorted.map((entry) => (
-          <div
-            key={entry.mapId}
-            className="flex items-center gap-2 rounded-md border border-border/50 bg-card/40 px-2 py-1"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="truncate text-[12px] font-bold">{entry.mapName}</p>
-                <p className="shrink-0 text-[11px] font-bold tabular-nums text-primary">
-                  {entry.played > 0 ? `${entry.winRate}%` : "—"}
+    <div className={cn("space-y-2", dense && "space-y-1.5")}>
+      {board.length >= 3 && (
+        <MapRadar
+          values={board.map((entry) => entry.winRate)}
+          labels={board.map((entry) => entry.mapName)}
+          size={dense ? 118 : 148}
+        />
+      )}
+      <div className={cn("space-y-1", dense && "space-y-0.5")}>
+        {sorted.map((entry) => {
+          const preview = getMapById(entry.mapId)?.imagePath;
+          return (
+            <div
+              key={entry.mapId}
+              className={cn(
+                "flex items-center gap-2 rounded-md border border-border/50 bg-card/40",
+                dense ? "px-1.5 py-1" : "px-2 py-1",
+              )}
+            >
+              {preview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={preview}
+                  alt=""
+                  className={cn(
+                    "shrink-0 rounded object-cover",
+                    dense ? "size-7" : "size-9",
+                  )}
+                  draggable={false}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p
+                    className={cn(
+                      "truncate font-bold",
+                      dense ? "text-[11px]" : "text-[12px]",
+                    )}
+                  >
+                    {entry.mapName}
+                  </p>
+                  <p className="shrink-0 text-[11px] font-bold tabular-nums text-primary">
+                    {entry.winRate}%
+                  </p>
+                </div>
+                <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-border/60">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${entry.winRate}%` }}
+                  />
+                </div>
+                <p className="mt-0.5 text-[9px] tabular-nums text-muted-foreground">
+                  {entry.wins}/{entry.played} · rating {entry.avgRating.toFixed(2)}{" "}
+                  · ADR {entry.avgAdr}
                 </p>
               </div>
-              <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-border/60">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width]"
-                  style={{
-                    width: `${entry.played > 0 ? entry.winRate : 0}%`,
-                  }}
-                />
-              </div>
-              <p className="mt-0.5 text-[9px] tabular-nums text-muted-foreground">
-                {entry.wins}/{entry.played} · rating{" "}
-                {entry.played > 0 ? entry.avgRating.toFixed(2) : "—"} · ADR{" "}
-                {entry.played > 0 ? entry.avgAdr : "—"}
-              </p>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

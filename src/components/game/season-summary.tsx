@@ -1,11 +1,26 @@
 "use client";
 
+import {
+  Crosshair,
+  DollarSign,
+  Gauge,
+  Layers,
+  Star,
+  Swords,
+  Target,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 import { RankBadges } from "@/components/art/rank-badge";
 import { AnimatedNumber } from "@/components/game/animated-number";
 import { Button } from "@/components/ui/button";
 import { getOgRank } from "@/lib/game/ranks";
 import { cn } from "@/lib/utils";
-import type { SeasonSummary as SeasonSummaryType, SeriesResult } from "@/lib/types/game";
+import type {
+  HighlightKind,
+  SeasonSummary as SeasonSummaryType,
+  SeriesResult,
+} from "@/lib/types/game";
 
 type SeasonSummaryProps = {
   summary: SeasonSummaryType;
@@ -15,6 +30,34 @@ type SeasonSummaryProps = {
   onContinue: () => void;
   onRetire?: () => void;
   className?: string;
+};
+
+type SummaryStat = {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  accent: string;
+  decimals?: number;
+  prefix?: string;
+  grouped?: boolean;
+};
+
+const HIGHLIGHT_EMOJI: Record<HighlightKind, string> = {
+  win: "🏆",
+  clutch: "🔥",
+  fail: "💥",
+  transfer: "📝",
+  case: "📦",
+  training: "🎯",
+  neutral: "⚡",
+  bench: "🪑",
+  graffiti: "🎨",
+  locker: "👕",
+  career: "💼",
+  personal: "❤️",
+  match: "🔫",
+  team: "👥",
+  meta: "✨",
 };
 
 export function SeasonSummary({
@@ -29,6 +72,57 @@ export function SeasonSummary({
   const champion = summary.placement === "CAMPEÓN";
   const og = premierRating !== undefined ? getOgRank(premierRating) : null;
   const splitLabel = ((summary.split - 1) % 2) + 1;
+
+  const primaryStats: SummaryStat[] = [
+    {
+      label: "Rating",
+      value: summary.rating,
+      decimals: 2,
+      icon: Gauge,
+      accent: "text-sky-400 bg-sky-500/15 border-sky-500/35",
+    },
+    {
+      label: "ADR",
+      value: summary.adr,
+      icon: Target,
+      accent: "text-orange-400 bg-orange-500/15 border-orange-500/35",
+    },
+    {
+      label: "Kills",
+      value: summary.kills,
+      icon: Crosshair,
+      accent: "text-rose-400 bg-rose-500/15 border-rose-500/35",
+    },
+    {
+      label: "Rounds",
+      value: summary.roundsPlayed,
+      icon: Layers,
+      accent: "text-cyan-400 bg-cyan-500/15 border-cyan-500/35",
+    },
+  ];
+
+  const secondaryStats: SummaryStat[] = [
+    {
+      label: "Aces",
+      value: summary.aces,
+      icon: Star,
+      accent: "text-amber-400 bg-amber-500/15 border-amber-500/35",
+    },
+    {
+      label: "Clutches",
+      value: summary.clutchesWon,
+      icon: Swords,
+      accent: "text-violet-400 bg-violet-500/15 border-violet-500/35",
+    },
+    {
+      label: "Premio",
+      value: summary.prizeMoney,
+      prefix: "$",
+      grouped: true,
+      icon: DollarSign,
+      accent: "text-emerald-400 bg-emerald-500/15 border-emerald-500/35",
+    },
+  ];
 
   return (
     <section
@@ -93,53 +187,14 @@ export function SeasonSummary({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         {/* Big scoreboard */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Rating", value: summary.rating, decimals: 2 },
-            { label: "ADR", value: summary.adr },
-            { label: "Kills", value: summary.kills },
-            { label: "Rounds", value: summary.roundsPlayed },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-lg border border-border/60 bg-background/50 px-3 py-3 text-center"
-            >
-              <AnimatedNumber
-                value={stat.value}
-                decimals={stat.decimals ?? 0}
-                className="text-3xl font-black tabular-nums"
-              />
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
+          {primaryStats.map((stat) => (
+            <SummaryStatCell key={stat.label} stat={stat} size="lg" />
           ))}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: "Aces", value: summary.aces },
-            { label: "Clutches", value: summary.clutchesWon },
-            {
-              label: "Premio",
-              value: summary.prizeMoney,
-              prefix: "$",
-              grouped: true,
-            },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-lg border border-border/60 bg-background/50 px-3 py-3 text-center"
-            >
-              <AnimatedNumber
-                value={stat.value}
-                prefix={stat.prefix}
-                grouped={stat.grouped}
-                className="text-2xl font-black tabular-nums"
-              />
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
+          {secondaryStats.map((stat) => (
+            <SummaryStatCell key={stat.label} stat={stat} size="md" />
           ))}
         </div>
 
@@ -173,17 +228,25 @@ export function SeasonSummary({
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Momentos del split
             </p>
-            <div className="space-y-2">
+            <ul className="space-y-2">
               {summary.highlights.slice(-6).map((highlight, index) => (
-                <p
+                <li
                   key={index}
                   style={{ animationDelay: `${index * 70}ms` }}
-                  className="animate-fade-up border-l-2 border-primary/60 pl-3 text-sm leading-relaxed text-foreground/90"
+                  className="animate-fade-up flex items-start gap-2.5"
                 >
-                  {highlight}
-                </p>
+                  <span
+                    className="mt-0.5 w-6 shrink-0 text-center text-base leading-none"
+                    aria-hidden
+                  >
+                    {HIGHLIGHT_EMOJI[highlight.kind] ?? HIGHLIGHT_EMOJI.neutral}
+                  </span>
+                  <p className="text-sm leading-relaxed text-foreground/90">
+                    {highlight.text}
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 
@@ -206,5 +269,40 @@ export function SeasonSummary({
         </Button>
       </div>
     </section>
+  );
+}
+
+function SummaryStatCell({
+  stat,
+  size,
+}: {
+  stat: SummaryStat;
+  size: "lg" | "md";
+}) {
+  const Icon = stat.icon;
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/50 px-3 py-3 text-center">
+      <div
+        className={cn(
+          "mx-auto mb-1.5 flex size-7 items-center justify-center rounded-md border",
+          stat.accent,
+        )}
+      >
+        <Icon className="size-3.5" aria-hidden />
+      </div>
+      <AnimatedNumber
+        value={stat.value}
+        decimals={stat.decimals ?? 0}
+        prefix={stat.prefix}
+        grouped={stat.grouped}
+        className={cn(
+          "font-black tabular-nums",
+          size === "lg" ? "text-3xl" : "text-2xl",
+        )}
+      />
+      <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {stat.label}
+      </p>
+    </div>
   );
 }

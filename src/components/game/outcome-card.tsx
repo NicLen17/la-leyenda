@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { MapArt } from "@/components/art/map-art";
 import { Button } from "@/components/ui/button";
+import { playOutcomeCue } from "@/lib/audio/sounds";
 import { RARITY_META } from "@/lib/data/cases";
 import { cn } from "@/lib/utils";
 import type { CaseItem, OutcomeKind, SceneKind } from "@/lib/types/game";
@@ -19,38 +22,61 @@ type OutcomeCardProps = {
 
 const OUTCOME_META: Record<
   OutcomeKind,
-  { label: string; accent: string; icon: string }
+  {
+    label: string;
+    accent: string;
+    icon: string;
+    gradient: string;
+  }
 > = {
-  win: { label: "Victoria", accent: "text-primary", icon: "/ui/outcome-win.svg" },
+  win: {
+    label: "Victoria",
+    accent: "text-emerald-300",
+    icon: "/ui/outcome-win.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.45)_0%,rgba(16,185,129,0.18)_42%,transparent_70%)]",
+  },
   clutch: {
     label: "Clutch",
-    accent: "text-amber-400",
+    accent: "text-amber-300",
     icon: "/ui/outcome-clutch.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.48)_0%,rgba(245,158,11,0.2)_42%,transparent_70%)]",
   },
   fail: {
     label: "Fallaste",
-    accent: "text-destructive",
+    accent: "text-red-300",
     icon: "/ui/outcome-fail.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(248,113,113,0.48)_0%,rgba(239,68,68,0.2)_42%,transparent_70%)]",
   },
   transfer: {
     label: "Mercado",
-    accent: "text-sky-400",
+    accent: "text-sky-300",
     icon: "/ui/outcome-transfer.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.4)_0%,rgba(14,165,233,0.16)_42%,transparent_70%)]",
   },
   case: {
     label: "Unbox",
-    accent: "text-amber-300",
-    icon: "/ui/outcome-case.svg",
+    accent: "text-amber-200",
+    icon: "/ui/cs2-case.webp",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(252,211,77,0.42)_0%,rgba(245,158,11,0.16)_42%,transparent_70%)]",
   },
   training: {
     label: "Entrenamiento",
-    accent: "text-emerald-400",
+    accent: "text-emerald-300",
     icon: "/ui/outcome-training.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.36)_0%,rgba(16,185,129,0.14)_42%,transparent_70%)]",
   },
   neutral: {
     label: "Resultado",
     accent: "text-primary",
     icon: "/ui/outcome-neutral.svg",
+    gradient:
+      "bg-[radial-gradient(ellipse_at_center,rgba(251,146,60,0.32)_0%,rgba(234,88,12,0.12)_42%,transparent_70%)]",
   },
 };
 
@@ -67,6 +93,10 @@ export function OutcomeCard({
   const rarity = caseItem ? RARITY_META[caseItem.rarity] : null;
   const meta = OUTCOME_META[kind];
 
+  useEffect(() => {
+    playOutcomeCue(kind);
+  }, [kind]);
+
   return (
     <section
       className={cn(
@@ -74,25 +104,42 @@ export function OutcomeCard({
         className,
       )}
     >
-      <div className="relative h-[34%] min-h-[140px] shrink-0">
+      <div className="relative h-[38%] min-h-[160px] shrink-0">
         <MapArt
           mapId={mapId}
           scene={scene ?? (mapId ? "map" : "arena")}
           className="h-full w-full"
         />
-        <div className="absolute inset-0 flex items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={meta.icon}
-            alt=""
-            className="size-20 drop-shadow-[0_8px_24px_rgba(0,0,0,0.65)] animate-fade-up sm:size-24"
-          />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 p-3">
+        <div className={cn("absolute inset-0", meta.gradient)} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+          <div
+            className={cn(
+              kind === "win" || kind === "fail"
+                ? "animate-risk-result-pulse"
+                : undefined,
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={meta.icon}
+              alt=""
+              className={cn(
+                "size-20 drop-shadow-[0_8px_24px_rgba(0,0,0,0.65)] sm:size-24",
+                kind === "win" || kind === "fail"
+                  ? "animate-crest-in"
+                  : "animate-fade-up",
+              )}
+            />
+          </div>
           <p
             className={cn(
-              "text-[11px] font-bold uppercase tracking-[0.3em]",
+              "text-sm font-bold uppercase tracking-[0.28em] drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]",
               meta.accent,
+              kind === "win" || kind === "fail"
+                ? "animate-stat-pop"
+                : "animate-fade-up",
             )}
           >
             {meta.label}

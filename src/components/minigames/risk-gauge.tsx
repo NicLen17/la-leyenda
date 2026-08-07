@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  playReady,
+  playSoftFail,
+  playSoftSuccess,
+  startSpinTicks,
+  stopTicks,
+} from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type RiskGaugeProps = {
@@ -28,16 +35,21 @@ export function RiskGauge({
   const [angle, setAngle] = useState(0);
   const [success, setSuccess] = useState<boolean | null>(null);
   const frame = useRef<number | null>(null);
+  const progressRef = useRef(0);
 
   useEffect(() => {
     return () => {
       if (frame.current) cancelAnimationFrame(frame.current);
+      stopTicks();
     };
   }, []);
 
   const spin = () => {
     if (stage !== "idle") return;
     setStage("spinning");
+    playReady();
+    progressRef.current = 0;
+    startSpinTicks(() => progressRef.current);
 
     const willSucceed = Math.random() * 100 < clamped;
     const winSpan = (clamped / 100) * 360;
@@ -53,15 +65,20 @@ export function RiskGauge({
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
+      progressRef.current = t;
       const eased = 1 - (1 - t) ** 3;
       setAngle(from + (target - from) * eased);
       if (t < 1) {
         frame.current = requestAnimationFrame(tick);
         return;
       }
+      stopTicks();
       setSuccess(willSucceed);
       setStage("done");
-      window.setTimeout(() => onComplete(willSucceed), 900);
+      if (willSucceed) playSoftSuccess({ volume: 0.95 });
+      else playSoftFail({ volume: 0.5 });
+      // Hold so the win/fail land pulse can read before OutcomeCard.
+      window.setTimeout(() => onComplete(willSucceed), 1200);
     };
 
     frame.current = requestAnimationFrame(tick);
@@ -81,7 +98,16 @@ export function RiskGauge({
         <span className="tabular-nums text-sky-400">{clamped}% chance</span>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-lg border border-violet-500/30 bg-[radial-gradient(ellipse_at_center,#1a1030_0%,#07060c_70%)] p-4">
+      <div
+        className={cn(
+          "relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-lg border p-4 transition-colors duration-300",
+          stage === "done" && success
+            ? "animate-risk-land-win border-sky-400/55 bg-[radial-gradient(ellipse_at_center,#0c2a3a_0%,#07060c_72%)]"
+            : stage === "done" && success === false
+              ? "animate-risk-land-fail border-rose-400/55 bg-[radial-gradient(ellipse_at_center,#3a0c18_0%,#07060c_72%)]"
+              : "border-violet-500/30 bg-[radial-gradient(ellipse_at_center,#1a1030_0%,#07060c_70%)]",
+        )}
+      >
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
@@ -91,23 +117,59 @@ export function RiskGauge({
           }}
         />
 
-        <div className="relative">
+        {stage === "done" && (
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0",
+              success
+                ? "bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.28)_0%,transparent_58%)]"
+                : "bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.28)_0%,transparent_58%)]",
+            )}
+          />
+        )}
+
+        <div
+          className={cn(
+            "relative",
+            stage === "done" && "animate-risk-result-pulse",
+          )}
+        >
           <svg
             width={size}
             height={size}
             viewBox={`0 0 ${size} ${size}`}
-            className="drop-shadow-[0_0_24px_rgba(139,92,246,0.35)]"
+            className={cn(
+              "transition-[filter] duration-300",
+              stage === "done" && success
+                ? "drop-shadow-[0_0_28px_rgba(56,189,248,0.55)]"
+                : stage === "done" && success === false
+                  ? "drop-shadow-[0_0_28px_rgba(244,63,94,0.5)]"
+                  : "drop-shadow-[0_0_24px_rgba(139,92,246,0.35)]",
+            )}
           >
             <polygon
               points={octagonPoints(cx, cy, 98)}
               fill="none"
-              stroke="rgba(167,139,250,0.55)"
+              stroke={
+                stage === "done" && success
+                  ? "rgba(56,189,248,0.75)"
+                  : stage === "done" && success === false
+                    ? "rgba(251,113,133,0.7)"
+                    : "rgba(167,139,250,0.55)"
+              }
               strokeWidth="2"
             />
             <polygon
               points={octagonPoints(cx, cy, 90)}
               fill="rgba(15,10,28,0.85)"
-              stroke="rgba(99,102,241,0.4)"
+              stroke={
+                stage === "done" && success
+                  ? "rgba(52,211,153,0.45)"
+                  : stage === "done" && success === false
+                    ? "rgba(244,63,94,0.4)"
+                    : "rgba(99,102,241,0.4)"
+              }
               strokeWidth="1.5"
             />
 
@@ -116,7 +178,11 @@ export function RiskGauge({
               cy={cy}
               r={r}
               fill="none"
-              stroke="rgba(255,255,255,0.08)"
+              stroke={
+                stage === "done" && success === false
+                  ? "rgba(244,63,94,0.35)"
+                  : "rgba(255,255,255,0.08)"
+              }
               strokeWidth="10"
             />
             <path
@@ -125,7 +191,11 @@ export function RiskGauge({
               stroke="#38bdf8"
               strokeWidth="10"
               strokeLinecap="butt"
-              className="drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+              className={cn(
+                stage === "done" && success
+                  ? "drop-shadow-[0_0_14px_rgba(56,189,248,1)]"
+                  : "drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]",
+              )}
             />
 
             <g transform={`rotate(${angle} ${cx} ${cy})`}>
@@ -146,17 +216,26 @@ export function RiskGauge({
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <p
               className={cn(
-                "text-3xl font-black tabular-nums tracking-tight",
+                "text-3xl font-black tabular-nums tracking-tight transition-colors duration-300",
                 stage === "done"
                   ? success
-                    ? "text-sky-300"
-                    : "text-rose-400"
+                    ? "animate-stat-pop text-sky-300"
+                    : "animate-stat-pop text-rose-400"
                   : "text-white",
               )}
             >
               {clamped.toFixed(1)}%
             </p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-violet-200/80">
+            <p
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-[0.25em] transition-colors duration-300",
+                stage === "done"
+                  ? success
+                    ? "text-emerald-300"
+                    : "text-rose-300"
+                  : "text-violet-200/80",
+              )}
+            >
               {stage === "done"
                 ? success
                   ? "Buen resultado"
@@ -166,7 +245,16 @@ export function RiskGauge({
           </div>
         </div>
 
-        <p className="relative z-10 mt-3 max-w-xs text-center text-xs text-violet-100/70">
+        <p
+          className={cn(
+            "relative z-10 mt-3 max-w-xs text-center text-xs transition-colors duration-300",
+            stage === "done"
+              ? success
+                ? "animate-fade-up font-medium text-sky-200/90"
+                : "animate-fade-up font-medium text-rose-200/90"
+              : "text-violet-100/70",
+          )}
+        >
           {stage === "idle" &&
             "Girás la ruleta. La zona azul es el resultado bueno."}
           {stage === "spinning" && "La aguja está cayendo..."}

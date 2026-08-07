@@ -3,48 +3,42 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  playBombDefused,
+  playBombPlanted,
+  playReady,
+  playSoftFail,
+  playUtilitySuccess,
+} from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type TimingGameProps = {
-  /** Timing bar variants used by spray / utility / bomb actions. */
-  mode: "spray" | "defuse" | "smoke" | "plant";
+  mode: "defuse" | "plant";
   onComplete: (success: boolean) => void;
 };
 
+/** Shared pacing for all timing-bar minigames — keep them fair and consistent. */
+const TIMING_BASE_SPEED = 0.28;
+const TIMING_ACCEL = 0.06;
+
 const CONFIG = {
-  spray: {
-    title: "Control de spray",
-    hint: "Tres balas seguidas dentro de la zona. El patrón se acelera.",
-    rounds: 3,
-    zone: 17,
-    speed: 1.5,
-    accelerate: 0.45,
-    action: "Disparar",
-  },
   defuse: {
     title: "Defuse a contrarreloj",
-    hint: "Cinco cables. Empieza lento y se acelera en cada etapa. Soltá en la zona verde.",
+    hint: "Cinco cables. Ritmo calmado: soltá en la zona verde. Se acelera poco a poco.",
+    winRule: "Cortá los 5 cables en la zona. Un fallo y la bomba explota.",
     rounds: 5,
-    zone: 18,
-    speed: 0.85,
-    accelerate: 0.38,
+    zone: 28,
+    speed: TIMING_BASE_SPEED,
+    accelerate: TIMING_ACCEL,
     action: "Cortar el cable",
-  },
-  smoke: {
-    title: "Lineup de smoke",
-    hint: "Soltá la smoke en el pixel exacto del lineup. Dos intentos.",
-    rounds: 2,
-    zone: 11,
-    speed: 1.85,
-    accelerate: 0.25,
-    action: "Tirar smoke",
   },
   plant: {
     title: "Plant timing",
     hint: "Plantá en la ventana segura: ni muy temprano (te peekean) ni tarde.",
+    winRule: "Plantá una sola vez dentro de la zona verde para ganar.",
     rounds: 1,
-    zone: 14,
-    speed: 2.0,
+    zone: 26,
+    speed: TIMING_BASE_SPEED,
     accelerate: 0,
     action: "Plantar",
   },
@@ -102,12 +96,22 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
     setZoneStart(20 + Math.random() * (70 - config.zone));
     setRound(0);
     setStarted(true);
+    playReady();
+    if (mode === "defuse") {
+      playBombPlanted();
+    }
   };
 
   const stop = () => {
-    if (!started) return;
+    if (!started || feedback) return;
     const hit = position >= zoneStart && position <= zoneStart + zoneWidth;
     setFeedback(hit ? "hit" : "miss");
+
+    if (hit) {
+      playUtilitySuccess({ volume: 0.92 });
+    } else {
+      playSoftFail({ volume: 0.4 });
+    }
 
     if (!hit) {
       running.current = false;
@@ -118,16 +122,18 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
     const nextRound = round + 1;
     if (nextRound >= config.rounds) {
       running.current = false;
+      if (mode === "defuse") playBombDefused();
+      if (mode === "plant") playBombPlanted();
       window.setTimeout(() => onComplete(true), 700);
       return;
     }
 
     setRound(nextRound);
     speed.current += config.accelerate;
-    // Defuse: zone tightens slightly each cable as speed ramps up.
+    // Defuse: zone tightens only slightly — stay fair across all cables.
     const nextZone =
       mode === "defuse"
-        ? Math.max(11, config.zone - nextRound * 1.4)
+        ? Math.max(18, config.zone - nextRound * 1.5)
         : config.zone;
     setZoneWidth(nextZone);
     setZoneStart(15 + Math.random() * (70 - nextZone));
@@ -136,7 +142,7 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>{config.title}</span>
         {config.rounds > 1 && (
           <span className="tabular-nums">
@@ -146,7 +152,11 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-4 rounded-lg border border-border/60 bg-card p-4">
+      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+        {config.winRule}
+      </p>
+
+      <div className="relative flex flex-1 flex-col justify-center gap-4 rounded-lg border border-border/60 bg-card p-4">
         <p className="text-center text-xs text-muted-foreground">{config.hint}</p>
 
         <div className="relative h-11 overflow-hidden rounded-md border border-border bg-[#0d1219]">

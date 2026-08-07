@@ -48,12 +48,11 @@ export type AttributeKey =
 export type MinigameKind =
   | "flick"
   | "reaction"
-  | "spray"
   | "defuse"
   | "coinflip"
   | "case"
   | "hold"
-  | "smoke"
+  | "lineup"
   | "retake"
   | "economy"
   | "awpPeek"
@@ -88,6 +87,23 @@ export type OutcomeKind =
   | "neutral"
   | "training";
 
+/** Visual category for "Momentos del split" entries. */
+export type HighlightKind =
+  | OutcomeKind
+  | "bench"
+  | "graffiti"
+  | "locker"
+  | "career"
+  | "personal"
+  | "match"
+  | "team"
+  | "meta";
+
+export type SeasonHighlight = {
+  text: string;
+  kind: HighlightKind;
+};
+
 export type Rarity =
   | "consumer"
   | "industrial"
@@ -112,7 +128,7 @@ export type Team = {
   colors: { primary: string; secondary: string };
   /** Short identity blurb shown in the transfer market */
   blurb: string;
-  /** Optional local logo under /public (e.g. /teams/vitality.svg). */
+  /** Optional local logo under /public/teams/real-logo. */
   logoPath?: string;
 };
 
@@ -351,6 +367,7 @@ export type EventOption = {
   description: string;
   risk?: boolean;
   effects: StatEffects;
+  /** Default narrative; for risk options this is the success blurb */
   outcomeText: string;
   /** Launch a minigame instead of resolving immediately */
   minigame?: MinigameKind;
@@ -358,6 +375,7 @@ export type EventOption = {
   successEffects?: StatEffects;
   failEffects?: StatEffects;
   successText?: string;
+  /** Shown when a risk gauge / minigame fails — do not put win copy in outcomeText for fails */
   failText?: string;
   grantsGraffiti?: string;
   grantsCase?: boolean;
@@ -416,7 +434,7 @@ export type SeasonSummary = {
   prizeMoney: number;
   salaryEarned: number;
   benched: boolean;
-  highlights: string[];
+  highlights: SeasonHighlight[];
   rivalNote: string;
 };
 
@@ -494,8 +512,13 @@ export type PlayerState = {
   archetypeChosen: boolean;
   archetypeId: string | null;
   usedEventIds: string[];
-  seasonHighlights: string[];
+  seasonHighlights: SeasonHighlight[];
   isDaily: boolean;
+  /**
+   * After leaving or finishing a minigame this split, further skill checks
+   * are blocked until the next event batch.
+   */
+  minigameLocked: boolean;
 };
 
 export type CareerSetup = {
@@ -549,5 +572,6 @@ export type RoleInfo = {
   label: string;
   tag: string;
   description: string;
+  image: string;
   bonuses: Partial<Record<AttributeKey, number>>;
 };

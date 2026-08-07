@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "La Leyenda | CS2 Career Simulator",
   description:
-    "Simulador de carrera de Counter-Strike 2: de una LAN de tier 3 a campeón de Major, con minijuegos de aim, clutches y mercado de pases real.",
+    "Simulador de carrera de Counter-Strike 2: de una LAN de tier 3 a campeón de Major, con memoria de lineups, aim, clutches y mercado de pases real.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

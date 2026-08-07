@@ -1,7 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { CsCrosshair } from "@/components/minigames/cs-crosshair";
+import { ShotResultFlash } from "@/components/minigames/shot-result";
+import { playGunshot, playReady, playSound } from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
 type ReactionGameProps = {
@@ -11,42 +15,39 @@ type ReactionGameProps = {
 };
 
 type Stage = "idle" | "waiting" | "peek" | "tooSoon" | "done";
+type EnemySide = "ct" | "t";
 
-/** Simple T-side model silhouette that pops on peek. */
-function EnemySilhouette({ className }: { className?: string }) {
+const ENEMY_IMAGES: Record<EnemySide, string> = {
+  ct: "/ui/cst silueta.png",
+  t: "/ui/tt silueta.png",
+};
+
+const CROSSHAIR_GREEN = "#7CFF6B";
+
+function EnemySilhouette({
+  side,
+  className,
+}: {
+  side: EnemySide;
+  className?: string;
+}) {
   return (
-    <svg
-      viewBox="0 0 64 80"
-      className={cn("h-28 w-24 drop-shadow-[0_0_18px_rgba(234,88,12,0.55)]", className)}
-      aria-hidden
+    <div
+      className={cn(
+        "pointer-events-none relative h-full w-full",
+        className,
+      )}
     >
-      <ellipse cx="32" cy="74" rx="14" ry="4" fill="#000" fillOpacity="0.35" />
-      {/* legs */}
-      <rect x="22" y="48" width="8" height="24" rx="2" fill="#3d2a1a" />
-      <rect x="34" y="48" width="8" height="24" rx="2" fill="#3d2a1a" />
-      {/* torso */}
-      <rect x="20" y="28" width="24" height="24" rx="3" fill="#c45c26" />
-      <rect x="24" y="32" width="16" height="10" rx="1" fill="#1a120c" fillOpacity="0.45" />
-      {/* head + helmet */}
-      <circle cx="32" cy="20" r="10" fill="#c49a6c" />
-      <path d="M22 18 Q32 8 42 18 L40 24 Q32 20 24 24 Z" fill="#2a2a2a" />
-      {/* rifle */}
-      <rect x="40" y="36" width="18" height="3" rx="1" fill="#1f1f1f" />
-      <rect x="54" y="34" width="6" height="2" fill="#333" />
-    </svg>
-  );
-}
-
-function Crosshair() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <div className="relative size-16">
-        <div className="absolute left-1/2 top-0 h-3 w-[2px] -translate-x-1/2 bg-primary/90" />
-        <div className="absolute bottom-0 left-1/2 h-3 w-[2px] -translate-x-1/2 bg-primary/90" />
-        <div className="absolute left-0 top-1/2 h-[2px] w-3 -translate-y-1/2 bg-primary/90" />
-        <div className="absolute right-0 top-1/2 h-[2px] w-3 -translate-y-1/2 bg-primary/90" />
-        <div className="absolute left-1/2 top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
-      </div>
+      <Image
+        src={ENEMY_IMAGES[side]}
+        alt=""
+        fill
+        sizes="(max-width: 768px) 92vw, 640px"
+        priority
+        draggable={false}
+        className="object-contain object-center drop-shadow-[0_0_32px_rgba(0,0,0,0.75)] [mix-blend-mode:lighten]"
+        aria-hidden
+      />
     </div>
   );
 }
@@ -57,103 +58,289 @@ export function ReactionGame({
 }: ReactionGameProps) {
   const [stage, setStage] = useState<Stage>("idle");
   const [reaction, setReaction] = useState<number | null>(null);
+  const [won, setWon] = useState(false);
+  const [enemySide, setEnemySide] = useState<EnemySide>("t");
+  const [remainingMs, setRemainingMs] = useState(threshold);
+  const [arenaSize, setArenaSize] = useState(280);
+  const arenaRef = useRef<HTMLButtonElement | null>(null);
   const peekAt = useRef(0);
-  const timer = useRef<number | null>(null);
-
-  const arm = useCallback(() => {
-    setStage("waiting");
-    setReaction(null);
-    const delay = 1100 + Math.random() * 2400;
-    timer.current = window.setTimeout(() => {
-      peekAt.current = Date.now();
-      setStage("peek");
-    }, delay);
-  }, []);
+  const armTimer = useRef<number | null>(null);
+  const failTimer = useRef<number | null>(null);
+  const hardCapTimer = useRef<number | null>(null);
+  const raf = useRef<number | null>(null);
+  const finished = useRef(false);
 
   useEffect(() => {
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
+    const el = arenaRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setArenaSize(Math.min(width, height));
     };
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
+  const clearTimers = useCallback(() => {
+    if (armTimer.current) {
+      window.clearTimeout(armTimer.current);
+      armTimer.current = null;
+    }
+    if (failTimer.current) {
+      window.clearTimeout(failTimer.current);
+      failTimer.current = null;
+    }
+    if (hardCapTimer.current) {
+      window.clearTimeout(hardCapTimer.current);
+      hardCapTimer.current = null;
+    }
+    if (raf.current) {
+      window.cancelAnimationFrame(raf.current);
+      raf.current = null;
+    }
+  }, []);
+
+  const finish = useCallback(
+    (success: boolean, ms: number | null) => {
+      if (finished.current) return;
+      finished.current = true;
+      clearTimers();
+      setWon(success);
+      setReaction(ms);
+      setRemainingMs(success && ms !== null ? Math.max(0, threshold - ms) : 0);
+      setStage("done");
+      window.setTimeout(() => onComplete(success), 900);
+    },
+    [clearTimers, onComplete, threshold],
+  );
+
+  const timeoutMiss = useCallback(() => {
+    if (finished.current) return;
+    playSound("helmet", { volume: 0.35 });
+    finish(false, threshold);
+  }, [finish, threshold]);
+
+  const startPeekCountdown = useCallback(() => {
+    peekAt.current = Date.now();
+    setRemainingMs(threshold);
+
+    const tick = () => {
+      if (finished.current) return;
+      const elapsed = Date.now() - peekAt.current;
+      const left = Math.max(0, threshold - elapsed);
+      setRemainingMs(left);
+      if (left <= 0) {
+        // Don't rely only on setTimeout — resolve as soon as the bar hits 0.
+        timeoutMiss();
+        return;
+      }
+      raf.current = window.requestAnimationFrame(tick);
+    };
+    raf.current = window.requestAnimationFrame(tick);
+
+    // Backup if rAF is throttled/backgrounded.
+    failTimer.current = window.setTimeout(timeoutMiss, threshold + 40);
+  }, [threshold, timeoutMiss]);
+
+  const arm = useCallback(() => {
+    clearTimers();
+    finished.current = false;
+    setStage("waiting");
+    setReaction(null);
+    setWon(false);
+    setRemainingMs(threshold);
+    playReady();
+
+    const delay = 1100 + Math.random() * 2400;
+    armTimer.current = window.setTimeout(() => {
+      if (finished.current) return;
+      setEnemySide(Math.random() < 0.5 ? "ct" : "t");
+      setStage("peek");
+      startPeekCountdown();
+    }, delay);
+
+    // Absolute ceiling: waiting delay + reaction window + slack.
+    // If anything stalls, the round still ends as a loss.
+    hardCapTimer.current = window.setTimeout(() => {
+      timeoutMiss();
+    }, delay + threshold + 750);
+  }, [clearTimers, startPeekCountdown, threshold, timeoutMiss]);
+
+  useEffect(() => {
+    return () => clearTimers();
+  }, [clearTimers]);
+
   const handleClick = () => {
-    if (stage === "idle" || stage === "tooSoon") {
+    if (stage === "idle") {
       arm();
       return;
     }
 
     if (stage === "waiting") {
-      if (timer.current) window.clearTimeout(timer.current);
+      finished.current = true;
+      clearTimers();
+      playSound("helmet", { volume: 0.3 });
       setStage("tooSoon");
+      window.setTimeout(() => onComplete(false), 700);
       return;
     }
 
     if (stage === "peek") {
       const ms = Date.now() - peekAt.current;
-      setReaction(ms);
-      setStage("done");
-      window.setTimeout(() => onComplete(ms <= threshold), 900);
+      playGunshot();
+      finish(ms <= threshold, ms);
     }
   };
 
-  const label: Record<Stage, string> = {
-    idle: "Click para tomar el ángulo",
-    waiting: "Mirá el ángulo... no dispares antes",
-    peek: "¡ENEMIGO! DISPARÁ",
-    tooSoon: "Te adelantaste. Click para reintentar",
-    done:
-      reaction !== null && reaction <= threshold
-        ? `${reaction} ms — le ganaste el duelo`
-        : `${reaction} ms — llegaste tarde`,
-  };
+  const progress = Math.max(0, Math.min(1, remainingMs / threshold));
+  const secondsLeft = (remainingMs / 1000).toFixed(2);
+  const urgent = stage === "peek" && remainingMs <= threshold * 0.35;
+  const crosshairSize = Math.max(180, Math.round(arenaSize * 0.72));
+
+  const showEnemy =
+    stage === "peek" || (stage === "done" && reaction !== null);
+
+  const flashResult =
+    stage === "tooSoon"
+      ? ("miss" as const)
+      : stage === "done"
+        ? won
+          ? ("hit" as const)
+          : ("miss" as const)
+        : null;
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>Tiempo de reacción</span>
-        <span className="tabular-nums">objetivo &lt; {threshold} ms</span>
+        <span
+          className={cn(
+            "animate-pulse rounded-md border px-2.5 py-1 font-mono text-xs font-black tabular-nums tracking-wide",
+            stage === "peek" && urgent
+              ? "border-destructive/70 bg-destructive/20 text-destructive"
+              : "border-primary/55 bg-primary/15 text-primary",
+          )}
+        >
+          &lt; {threshold} ms
+        </span>
       </div>
 
+      <p
+        className={cn(
+          "animate-pulse rounded-md border px-3 py-1.5 text-center text-xs",
+          stage === "peek"
+            ? urgent
+              ? "border-destructive/50 bg-destructive/15 text-destructive"
+              : "border-primary/40 bg-primary/10 text-foreground"
+            : "border-border/50 bg-card/50 text-muted-foreground",
+        )}
+      >
+        Reaccioná en menos de{" "}
+        <span className="font-semibold text-foreground">{threshold} ms</span>.
+        Cuando aparece el enemigo, dispará antes de que se acabe el contador.
+      </p>
+
       <button
+        ref={arenaRef}
         type="button"
         onClick={handleClick}
+        disabled={stage === "tooSoon" || stage === "done"}
         className={cn(
-          "relative flex flex-1 select-none flex-col items-center justify-center overflow-hidden rounded-lg border-2 text-center transition-colors duration-100",
+          "relative flex min-h-0 flex-1 select-none flex-col items-center justify-center overflow-hidden rounded-lg border-2 text-center transition-colors duration-100",
           stage === "peek"
-            ? "border-primary bg-[#1a120c]"
+            ? urgent
+              ? "border-destructive bg-[#1a120c]"
+              : "border-primary bg-[#1a120c]"
             : stage === "tooSoon"
               ? "border-destructive bg-destructive/20"
               : stage === "done"
-                ? reaction !== null && reaction <= threshold
+                ? won
                   ? "border-primary bg-primary/15"
                   : "border-destructive bg-destructive/15"
                 : "border-border bg-[radial-gradient(ellipse_at_center,#1a2430_0%,#0b1018_70%)]",
         )}
       >
-        {/* environment wash */}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(56,90,120,0.25),transparent_40%,rgba(0,0,0,0.45))]" />
 
-        <Crosshair />
-
-        {(stage === "peek" ||
-          (stage === "done" && reaction !== null && reaction <= threshold)) && (
-          <div className="animate-fade-up absolute left-1/2 top-[28%] -translate-x-1/2">
-            <EnemySilhouette />
+        {(stage === "peek" || stage === "done") && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-2.5 bg-black/55">
+            <div
+              className={cn(
+                "h-full origin-left transition-[width] duration-75 ease-linear",
+                urgent || (stage === "done" && !won)
+                  ? "bg-destructive"
+                  : "bg-[#7CFF6B]",
+              )}
+              style={{ width: `${progress * 100}%` }}
+            />
           </div>
         )}
 
-        {stage === "done" && reaction !== null && reaction > threshold && (
-          <div className="absolute left-1/2 top-[28%] -translate-x-1/2 opacity-40">
-            <EnemySilhouette />
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-20 flex flex-col items-center gap-1 px-3">
+          {stage === "peek" && (
+            <>
+              <span
+                className={cn(
+                  "font-mono text-5xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] sm:text-6xl",
+                  urgent ? "text-destructive" : "text-[#7CFF6B]",
+                )}
+              >
+                {secondsLeft}s
+              </span>
+              <span
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-[0.22em]",
+                  urgent ? "text-destructive" : "text-foreground/80",
+                )}
+              >
+                dispará ahora
+              </span>
+            </>
+          )}
+        </div>
+
+        {showEnemy && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-[2%] z-[1]",
+              stage === "peek" && "animate-fade-up",
+              stage === "done" && !won && "opacity-40",
+            )}
+          >
+            <EnemySilhouette side={enemySide} />
           </div>
         )}
 
-        <div className="relative z-10 mt-auto mb-6 px-4">
-          <span className="text-lg font-bold tracking-tight drop-shadow">{label[stage]}</span>
+        <CsCrosshair
+          size={crosshairSize}
+          color={CROSSHAIR_GREEN}
+          className="z-[2]"
+        />
+
+        {flashResult && <ShotResultFlash result={flashResult} />}
+
+        <div className="relative z-10 mt-auto mb-4 px-4">
+          {stage === "idle" && (
+            <span className="text-sm font-semibold text-muted-foreground">
+              Click para tomar el ángulo
+            </span>
+          )}
           {stage === "waiting" && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Crosshair fija. Cuando peeks, click.
+            <p className="text-xs text-muted-foreground">
+              Esperá el peek. El contador arranca cuando aparece.
             </p>
+          )}
+          {stage === "peek" && (
+            <span className="sr-only">Enemigo visible — dispará</span>
+          )}
+          {stage === "done" && reaction !== null && (
+            <span className="tabular-nums text-sm font-bold text-muted-foreground">
+              {reaction} ms
+            </span>
           )}
         </div>
       </button>

@@ -33,6 +33,36 @@ export const NATIONALITIES: Record<Region, string[]> = {
   asia: ["Mongolia", "China", "Australia", "Corea del Sur", "Vietnam"],
 };
 
+export const NATIONALITY_FLAGS: Record<string, string> = {
+  Argentina: "🇦🇷",
+  Brasil: "🇧🇷",
+  Uruguay: "🇺🇾",
+  Chile: "🇨🇱",
+  Colombia: "🇨🇴",
+  Perú: "🇵🇪",
+  "Estados Unidos": "🇺🇸",
+  Canadá: "🇨🇦",
+  México: "🇲🇽",
+  Francia: "🇫🇷",
+  Dinamarca: "🇩🇰",
+  Suecia: "🇸🇪",
+  Polonia: "🇵🇱",
+  Alemania: "🇩🇪",
+  "Reino Unido": "🇬🇧",
+  España: "🇪🇸",
+  Turquía: "🇹🇷",
+  Israel: "🇮🇱",
+  Rusia: "🇷🇺",
+  Ucrania: "🇺🇦",
+  Kazajistán: "🇰🇿",
+  Bielorrusia: "🇧🇾",
+  Mongolia: "🇲🇳",
+  China: "🇨🇳",
+  Australia: "🇦🇺",
+  "Corea del Sur": "🇰🇷",
+  Vietnam: "🇻🇳",
+};
+
 export const FAME_LEVELS = [
   { min: 0, label: "Desconocido" },
   { min: 15, label: "Prospecto" },
@@ -55,13 +85,19 @@ export const PLAYERS_PER_SIDE = 5;
 export const MAX_ROUND_DAMAGE = 500;
 
 export const STARTING_AGE = 17;
-/** Hard career end — the game always retires you at this age. */
-export const RETIREMENT_AGE = 32;
+/**
+ * Hard career end. Kept tighter than real life so a full run stays session-length
+ * (17 → 28 ≈ 11 years / 22 splits instead of dragging into the early 30s).
+ */
+export const RETIREMENT_AGE = 28;
 export const SPLITS_PER_YEAR = 2;
-/** Two splits per year from 17 → 32 ≈ 30 splits max. */
+/** Two splits per year from 17 → 28 ≈ 22 splits max. */
 export const MAX_SPLITS = (RETIREMENT_AGE - STARTING_AGE) * SPLITS_PER_YEAR;
-/** Narrative + match decisions per split (temporada parcial). */
-export const EVENTS_PER_SEASON = 5;
+/**
+ * Narrative + match decisions per split. Three beats keep the season readable
+ * without a 150-choice marathon (was 5 → ~150 events; now ~66).
+ */
+export const EVENTS_PER_SEASON = 3;
 
 /**
  * A "temporada" is one calendar year (2 splits). Shop buffs reset purchase
