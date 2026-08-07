@@ -99,18 +99,44 @@ function EffectChips({ effects }: { effects: StatEffects }) {
   const entries = sortedEntries(effects);
   if (entries.length === 0) return null;
   return (
-    <div className="flex flex-wrap content-start gap-1">
+    <div className="flex w-full min-w-0 flex-wrap gap-1">
       {entries.map(([key, value]) => (
         <span
           key={key}
           className={cn(
-            "rounded border px-1.5 py-0.5 text-[9px] font-semibold tabular-nums",
+            "max-w-full shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold leading-none tabular-nums",
             effectTone(key, value),
           )}
         >
           {formatEffect(key, value)}
         </span>
       ))}
+    </div>
+  );
+}
+
+function RiskLane({
+  label,
+  tone,
+  effects,
+}: {
+  label: string;
+  tone: "win" | "fail";
+  effects: StatEffects;
+}) {
+  const entries = sortedEntries(effects);
+  if (entries.length === 0) return null;
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-1">
+      <span
+        className={cn(
+          "text-[9px] font-bold uppercase tracking-wider",
+          tone === "win" ? "text-emerald-400/90" : "text-rose-400/90",
+        )}
+      >
+        {label}
+      </span>
+      <EffectChips effects={effects} />
     </div>
   );
 }
@@ -144,18 +170,18 @@ export function ChoiceButton({
       onClick={() => onSelect(option.id)}
       style={{ animationDelay: `${index * 60}ms` }}
       className={cn(
-        "animate-card-in group relative box-border flex h-full min-h-[4.5rem] w-full flex-col rounded-md border border-border/70 bg-card/70 px-2.5 py-2 text-left transition-all sm:min-h-0 sm:px-3 sm:py-2.5",
+        "animate-card-in group relative box-border flex w-full min-w-0 flex-col overflow-hidden rounded-md border border-border/70 bg-card/70 px-2.5 py-2.5 text-left transition-all sm:px-3 sm:py-3",
         "hover:-translate-y-0.5 hover:border-primary/70 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="line-clamp-2 text-[13px] font-bold leading-tight">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <p className="min-w-0 flex-1 text-[13px] font-bold leading-tight">
             {option.label}
           </p>
-          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <div className="flex max-w-[45%] shrink-0 flex-wrap justify-end gap-1">
             {option.risk && (
               <span className="rounded border border-rose-500/45 bg-rose-500/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-300">
                 Riesgo
@@ -174,25 +200,15 @@ export function ChoiceButton({
           </div>
         </div>
 
-        <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[11px] leading-snug text-muted-foreground">
           {option.description}
         </p>
 
-        <div className="mt-auto flex min-h-[22px] flex-col gap-1 pt-1">
+        <div className="mt-0.5 flex min-w-0 flex-col gap-1.5 border-t border-border/40 pt-1.5">
           {showRiskSplit ? (
             <>
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0 pt-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400/90">
-                  Si sale
-                </span>
-                <EffectChips effects={winEffects} />
-              </div>
-              <div className="flex items-start gap-1.5">
-                <span className="shrink-0 pt-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-400/90">
-                  Si falla
-                </span>
-                <EffectChips effects={failEffects} />
-              </div>
+              <RiskLane label="Si sale" tone="win" effects={winEffects} />
+              <RiskLane label="Si falla" tone="fail" effects={failEffects} />
             </>
           ) : (
             <EffectChips effects={winEffects} />

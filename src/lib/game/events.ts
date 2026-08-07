@@ -2,7 +2,12 @@ import { ACTIVE_DUTY, CS_MAPS } from "@/lib/data/maps";
 import { PRO_PLAYERS } from "@/lib/data/pros";
 import { TEAMS } from "@/lib/data/teams";
 import { qualifiesForOrgInterest } from "@/lib/game/market-gates";
-import type { GameEvent, PlayerState, StatEffects } from "@/lib/types/game";
+import type {
+  GameEvent,
+  MinigameKind,
+  PlayerState,
+  StatEffects,
+} from "@/lib/types/game";
 
 /* -------------------------------------------------------------------------- */
 /*                              hand-written events                            */
@@ -150,7 +155,7 @@ const MATCH_EVENTS: GameEvent[] = [
         label: "Ráfaga larga y transfer",
         description: "Controlar el retroceso y pasar al segundo cuerpo.",
         effects: {},
-        minigame: "flick",
+        minigame: "hold",
         successEffects: { aim: 4, fame: 3 },
         failEffects: { aim: -1, tilt: 2 },
         successText:
@@ -191,7 +196,7 @@ const MATCH_EVENTS: GameEvent[] = [
         label: "Trackear la línea de Window",
         description: "Crosshair path limpio, sin spray.",
         effects: {},
-        minigame: "flick",
+        minigame: "reaction",
         successEffects: { aim: 3, gameSense: 2, fame: 2 },
         failEffects: { aim: -1, tilt: 1 },
         successText:
@@ -1303,6 +1308,75 @@ const CLUTCH_SITUATIONS = [
   { size: 4, label: "1v4", reward: 8 },
 ];
 
+/**
+ * Clutch templates are numerous (map × site × situation). Without rotation they
+ * collapse into Aim/flick and drown out the rest of the minigame roster.
+ */
+const CLUTCH_MINIGAMES: Record<number, MinigameKind[]> = {
+  2: ["reaction", "hold", "awpPeek", "retake"],
+  3: ["flick", "retake", "hold", "defuse", "plant"],
+  4: ["retake", "flick", "defuse", "plant", "hold"],
+};
+
+const CLUTCH_OPTION_COPY: Record<
+  MinigameKind,
+  { label: string; description: string }
+> = {
+  flick: {
+    label: "Buscar los duelos uno por uno",
+    description: "Aislar el 1v1 y confiar en tu aim.",
+  },
+  reaction: {
+    label: "Leer el peek y castigar el timing",
+    description: "Crosshair fijo y reaccionar al primer cuerpo que asome.",
+  },
+  hold: {
+    label: "Anclar el ángulo clave",
+    description: "Mantener el hold mientras el reloj y la utilidad te empujan.",
+  },
+  awpPeek: {
+    label: "Ganar el duelo de scope",
+    description: "Hold limpio y castigar el primer peek.",
+  },
+  retake: {
+    label: "Limpiar el site en orden",
+    description: "Clear de ángulos sin hero plays hasta cerrar el round.",
+  },
+  defuse: {
+    label: "Forzar el defuse con kit",
+    description: "Cronómetro contra tu pulso en la bomba.",
+  },
+  plant: {
+    label: "Plantar bajo fire y pelear post-plant",
+    description: "Timing de plant y cover para jugar el reloj.",
+  },
+  lineup: {
+    label: "Utility de memoria antes del site",
+    description: "Cerrar visión con lineups y pelear con ventaja.",
+  },
+  economy: {
+    label: "Leer la economía del round",
+    description: "Saber si el rival full buy o force cambia el clutch.",
+  },
+  coinflip: {
+    label: "Jugarse el lado mental",
+    description: "Cara o ceca bajo presión del clutch.",
+  },
+  case: {
+    label: "Abrir la caja del clip",
+    description: "Varianza pura.",
+  },
+};
+
+function clutchMinigame(
+  situationSize: number,
+  mapIndex: number,
+  siteIndex: number,
+): MinigameKind {
+  const pool = CLUTCH_MINIGAMES[situationSize] ?? ["flick"];
+  return pool[(mapIndex * 5 + siteIndex * 3 + situationSize) % pool.length];
+}
+
 const SCRIM_TOPICS = [
   {
     topic: "el timing del default",
@@ -1324,9 +1398,11 @@ const SCRIM_TOPICS = [
 
 function buildMapClutchEvents(): GameEvent[] {
   const events: GameEvent[] = [];
-  for (const map of CS_MAPS) {
+  CS_MAPS.forEach((map, mapIndex) => {
     for (const situation of CLUTCH_SITUATIONS) {
-      for (const site of map.sites) {
+      map.sites.forEach((site, siteIndex) => {
+        const minigame = clutchMinigame(situation.size, mapIndex, siteIndex);
+        const copy = CLUTCH_OPTION_COPY[minigame];
         events.push({
           id: `clutch-${map.id}-${situation.label}-${site}`,
           title: `${situation.label} en ${site} de ${map.name}`,
@@ -1337,10 +1413,10 @@ function buildMapClutchEvents(): GameEvent[] {
           options: [
             {
               id: "take-duel",
-              label: "Buscar los duelos uno por uno",
-              description: "Aislar el 1v1 y confiar en tu aim.",
+              label: copy.label,
+              description: copy.description,
               effects: {},
-              minigame: situation.size >= 3 ? "flick" : "reaction",
+              minigame,
               // Runtime rewards come from rewards.ts (cores). Texts stay narrative.
               successEffects: { clutch: situation.reward },
               failEffects: { tilt: 1, form: -1 },
@@ -1365,9 +1441,9 @@ function buildMapClutchEvents(): GameEvent[] {
             },
           ],
         });
-      }
+      });
     }
-  }
+  });
   return events;
 }
 
@@ -1584,6 +1660,38 @@ function safeFallbackEvents(player: PlayerState): GameEvent[] {
   });
 }
 
+function primaryMinigame(event: GameEvent): MinigameKind | null {
+  for (const option of event.options) {
+    if (option.minigame) return option.minigame;
+  }
+  return null;
+}
+
+/** Equal chance per minigame kind so massive templated pools can't spam Aim. */
+function pickBalancedMinigameEvent(pool: GameEvent[]): GameEvent {
+  const byKind = new Map<MinigameKind, GameEvent[]>();
+  for (const event of pool) {
+    const kind = primaryMinigame(event);
+    if (!kind) continue;
+    const list = byKind.get(kind);
+    if (list) list.push(event);
+    else byKind.set(kind, [event]);
+  }
+
+  const kinds = [...byKind.keys()];
+  if (kinds.length === 0) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  const kind = kinds[Math.floor(Math.random() * kinds.length)];
+  const ofKind = byKind.get(kind) ?? pool;
+  return ofKind[Math.floor(Math.random() * ofKind.length)];
+}
+
+function pickFrom(pool: GameEvent[]): GameEvent {
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 /** Weighted so the player always gets a mix of match, team and life events. */
 export function pickEvent(player: PlayerState): GameEvent {
   const eligible = ALL_EVENTS.filter((event) => matchesPlayer(event, player));
@@ -1613,12 +1721,12 @@ export function pickEvent(player: PlayerState): GameEvent {
       handWritten.length > 0 && Math.random() < 0.55
         ? handWritten
         : lockedPool;
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pickFrom(pool);
   }
 
-  // Light bias toward clutch / skill moments (kept modest for pacing).
-  if (withMinigame.length > 0 && Math.random() < 0.28) {
-    return withMinigame[Math.floor(Math.random() * withMinigame.length)];
+  // Light bias toward skill moments — balanced across minigame kinds.
+  if (withMinigame.length > 0 && Math.random() < 0.32) {
+    return pickBalancedMinigameEvent(withMinigame);
   }
 
   const handWritten = eligible.filter(
@@ -1629,7 +1737,7 @@ export function pickEvent(player: PlayerState): GameEvent {
   const pool =
     handWritten.length > 0 && Math.random() < 0.55 ? handWritten : eligible;
 
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pickFrom(pool);
 }
 
 export const EVENT_COUNT = ALL_EVENTS.length;

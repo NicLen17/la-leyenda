@@ -78,12 +78,8 @@ export function EventCard({
           {event.description}
         </p>
 
-        <div
-          className="grid min-h-0 flex-1 gap-2"
-          style={{
-            gridTemplateRows: `repeat(${event.options.length}, minmax(min(4.75rem, auto), 1fr))`,
-          }}
-        >
+        {/* Content-sized options: equal 1fr rows clipped chips on mobile. */}
+        <div className="grid min-h-0 grid-cols-1 content-start gap-2.5">
           {event.options.map((option, index) => (
             <ChoiceButton
               key={option.id}
