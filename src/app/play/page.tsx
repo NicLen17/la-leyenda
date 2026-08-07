@@ -16,9 +16,11 @@ import { StorePanel } from "@/components/game/store-panel";
 import { TransferMarket } from "@/components/game/transfer-market";
 import { CaseOpening } from "@/components/minigames/case-opening";
 import { MinigameHost } from "@/components/minigames/minigame-host";
+import { RiskGauge } from "@/components/minigames/risk-gauge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { randomCase } from "@/lib/data/cases";
+import { careerYearsLeft } from "@/lib/game/constants";
 import { useGame } from "@/lib/game/game-context";
 import { loadSetup } from "@/lib/game/storage";
 import type { CsCase } from "@/lib/types/game";
@@ -32,11 +34,14 @@ export default function PlayPage() {
     pickArchetype,
     choose,
     finishMinigame,
+    finishRisk,
+    riskChance,
     next,
     nextSeason,
     signWith,
     unbox,
     buyItem,
+    retireNow,
     reset,
   } = useGame();
 
@@ -62,7 +67,15 @@ export default function PlayPage() {
 
       {player && runtime.phase !== "retired" && runtime.phase !== "archetype" && (
         <div className="hidden w-[300px] shrink-0 xl:w-[320px] lg:block">
-          <PlayerCard player={player} className="h-full" />
+          <PlayerCard
+            player={player}
+            className="h-full"
+            onOpenCases={
+              player.casesAvailable > 0
+                ? () => setCsCase(randomCase())
+                : undefined
+            }
+          />
         </div>
       )}
 
@@ -71,10 +84,24 @@ export default function PlayPage() {
         {player && runtime.phase !== "retired" && (
           <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-border/60 bg-card/50 px-3 py-1.5">
             <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {player.year} · Split {((player.currentSplit - 1) % 2) + 1} ·{" "}
-              {player.age} años · {player.team.name}
+              Temporada {player.year} · Split{" "}
+              {((player.currentSplit - 1) % 2) + 1} · {player.age} años ·{" "}
+              {player.team.name}
             </p>
             <div className="flex shrink-0 items-center gap-1.5">
+              {/* Mobile-only cases shortcut (desktop uses sidebar) */}
+              {player.casesAvailable > 0 && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 gap-1 px-2.5 text-[11px] lg:hidden"
+                  onClick={() => setCsCase(randomCase())}
+                >
+                  <span className="text-amber-400">◆</span>
+                  {player.casesAvailable} caja
+                  {player.casesAvailable > 1 ? "s" : ""}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -83,18 +110,6 @@ export default function PlayPage() {
               >
                 Tienda
               </Button>
-              {player.casesAvailable > 0 && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 gap-1 px-2.5 text-[11px]"
-                  onClick={() => setCsCase(randomCase())}
-                >
-                  <span className="text-amber-400">◆</span>
-                  {player.casesAvailable} caja
-                  {player.casesAvailable > 1 ? "s" : ""}
-                </Button>
-              )}
               <CareerTimeline log={player.careerLog} />
             </div>
           </div>
@@ -120,7 +135,7 @@ export default function PlayPage() {
             runtime.pendingOption?.minigame &&
             player && (
               <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card/60">
-                <div className="relative h-[20%] min-h-[88px] shrink-0">
+                <div className="relative h-[28%] min-h-[120px] shrink-0">
                   <MapArt
                     mapId={runtime.currentEvent?.mapId}
                     scene={runtime.currentEvent?.scene ?? "map"}
@@ -145,6 +160,33 @@ export default function PlayPage() {
               </div>
             )}
 
+          {runtime.phase === "risk" && runtime.pendingOption && (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card/60">
+              <div className="relative h-[22%] min-h-[96px] shrink-0">
+                <MapArt
+                  mapId={runtime.currentEvent?.mapId}
+                  scene={runtime.currentEvent?.scene ?? "map"}
+                  className="h-full w-full"
+                />
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-destructive">
+                    Riesgo
+                  </p>
+                  <h2 className="text-lg font-black uppercase leading-none tracking-tight drop-shadow">
+                    {runtime.pendingOption.label}
+                  </h2>
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 p-3">
+                <RiskGauge
+                  chance={riskChance}
+                  label={runtime.pendingOption.label}
+                  onComplete={finishRisk}
+                />
+              </div>
+            </div>
+          )}
+
           {runtime.phase === "outcome" && runtime.lastOutcome && (
             <OutcomeCard
               text={runtime.lastOutcome}
@@ -163,7 +205,9 @@ export default function PlayPage() {
               summary={runtime.lastSummary}
               series={player?.lastSeries ?? null}
               premierRating={player?.premierRating}
+              yearsLeft={player ? careerYearsLeft(player.age) : undefined}
               onContinue={nextSeason}
+              onRetire={retireNow}
               className="h-full"
             />
           )}

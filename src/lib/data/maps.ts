@@ -1,9 +1,8 @@
 import type { CsMap } from "@/lib/types/game";
 
 /**
- * Map hero radars live in /public/maps/{id}.png.
- * Source: MurkyYT/cs2-map-icons (CS2 depot radar dumps mirrored on GitHub).
- * Liquipedia Commons overviews 404'd; HLTV hotlinking is unreliable.
+ * Map metadata + palettes. Atmospheric hero scenes are rendered in
+ * `MapAtmosphere` (in-game vibe), not the radar PNGs under /public/maps.
  */
 export const CS_MAPS: CsMap[] = [
   {

@@ -18,7 +18,9 @@ import {
   continueAfterOutcome,
   continueAfterSummary,
   openCase,
+  pendingRiskChance,
   resolveMinigame,
+  resolveRisk,
   retire,
   selectOption,
   startCareer,
@@ -35,6 +37,8 @@ type GameContextValue = {
   pickArchetype: (archetypeId: string) => void;
   choose: (optionId: string) => void;
   finishMinigame: (success: boolean) => void;
+  finishRisk: (success: boolean) => void;
+  riskChance: number;
   next: () => void;
   nextSeason: () => void;
   signWith: (teamId: string) => void;
@@ -104,6 +108,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [transition],
   );
 
+  const finishRisk = useCallback(
+    (success: boolean) => {
+      transition((current) => resolveRisk(current, success));
+    },
+    [transition],
+  );
+
+  const riskChance = pendingRiskChance(runtime);
+
   const next = useCallback(() => {
     transition((current) => continueAfterOutcome(current));
   }, [transition]);
@@ -162,6 +175,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pickArchetype,
       choose,
       finishMinigame,
+      finishRisk,
+      riskChance,
       next,
       nextSeason,
       signWith,
@@ -177,6 +192,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       pickArchetype,
       choose,
       finishMinigame,
+      finishRisk,
+      riskChance,
       next,
       nextSeason,
       signWith,

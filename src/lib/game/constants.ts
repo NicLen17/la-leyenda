@@ -55,13 +55,34 @@ export const PLAYERS_PER_SIDE = 5;
 export const MAX_ROUND_DAMAGE = 500;
 
 export const STARTING_AGE = 17;
-export const RETIREMENT_AGE = 33;
+/** Hard career end — the game always retires you at this age. */
+export const RETIREMENT_AGE = 32;
 export const SPLITS_PER_YEAR = 2;
-export const MAX_SPLITS = 30;
-export const EVENTS_PER_SEASON = 3;
+/** Two splits per year from 17 → 32 ≈ 30 splits max. */
+export const MAX_SPLITS = (RETIREMENT_AGE - STARTING_AGE) * SPLITS_PER_YEAR;
+/** Narrative + match decisions per split (temporada parcial). */
+export const EVENTS_PER_SEASON = 5;
+
+/**
+ * A "temporada" is one calendar year (2 splits). Shop buffs reset purchase
+ * counters at year rollover so coaching/cases can't stack infinitely.
+ */
+export const STORE_SEASON_LIMITS = {
+  coaching: 1,
+  cases: 2,
+} as const;
 
 /** Career start: tier 3 salaries sit in the reported $1k-$5k band. */
 export const ROOKIE_SALARY = 900;
+
+export function careerYearsLeft(age: number): number {
+  return Math.max(0, RETIREMENT_AGE - age);
+}
+
+export function careerProgress(age: number): number {
+  const span = RETIREMENT_AGE - STARTING_AGE;
+  return Math.min(1, Math.max(0, (age - STARTING_AGE) / span));
+}
 
 export const LEGENDS = [
   {

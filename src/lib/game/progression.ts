@@ -288,6 +288,27 @@ export function computeTop20(player: PlayerState): number | null {
 
 export function shouldRetire(player: PlayerState): boolean {
   if (player.age >= RETIREMENT_AGE) return true;
-  // Nobody keeps a benched 30-year-old with a broken rating.
-  return player.age >= 29 && player.benched && player.rating < 0.95;
+  // Nobody keeps a benched veteran with a broken rating.
+  if (player.age >= 28 && player.benched && player.rating < 0.95) return true;
+  // Long fade: low fame + low rating after a long career.
+  if (
+    player.age >= 29 &&
+    player.fame < 25 &&
+    player.rating < 1.0 &&
+    player.trophies === 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Base success chance for risky narrative choices (gauge spin). */
+export function riskSuccessChance(player: PlayerState): number {
+  const raw =
+    38 +
+    player.gameSense * 0.22 +
+    player.form * 3 +
+    player.chemistry * 1.5 -
+    player.tilt * 2.5;
+  return clamp(Math.round(raw), 22, 72);
 }

@@ -25,10 +25,17 @@ export type GamePhase =
   | "archetype"
   | "event"
   | "minigame"
+  | "risk"
   | "outcome"
   | "market"
   | "seasonSummary"
   | "retired";
+
+/** Per-year (temporada) shop purchase counters — reset on year rollover. */
+export type StoreSeasonPurchases = {
+  coaching: number;
+  cases: number;
+};
 
 export type AttributeKey =
   | "aim"
@@ -479,6 +486,8 @@ export type PlayerState = {
   storeOwned: string[];
   /** Equipped peripherals bought in the tienda. */
   peripherals: Partial<Record<PeripheralSlot, string>>;
+  /** Coaching/case buys this temporada (calendar year). */
+  storeSeasonPurchases: StoreSeasonPurchases;
 
   careerLog: SeasonSummary[];
   lastSeries: SeriesResult | null;

@@ -38,15 +38,15 @@ export function EventCard({
         className,
       )}
     >
-      {/* situation artwork — shorter so choices fill the panel */}
-      <div className="relative h-[22%] min-h-[100px] max-h-[160px] shrink-0">
+      {/* Hero atmosphere — majority of the panel so the scene reads clearly */}
+      <div className="relative h-[46%] min-h-[180px] max-h-[340px] shrink-0">
         <MapArt
           mapId={event.mapId}
           scene={event.scene ?? "map"}
           className="h-full w-full"
         />
-        <div className="absolute inset-x-0 bottom-0 p-3">
-          <div className="mb-1 flex items-center gap-1.5">
+        <div className="absolute inset-x-0 bottom-0 p-4">
+          <div className="mb-1.5 flex items-center gap-1.5">
             <span className="rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-primary-foreground">
               {CATEGORY_LABELS[event.category]}
             </span>
@@ -56,7 +56,7 @@ export function EventCard({
               </span>
             )}
           </div>
-          <h2 className="text-xl font-black uppercase leading-none tracking-tight drop-shadow-lg">
+          <h2 className="text-2xl font-black uppercase leading-none tracking-tight drop-shadow-lg md:text-3xl">
             {event.title}
           </h2>
         </div>
@@ -67,7 +67,7 @@ export function EventCard({
           {event.description}
         </p>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
           {event.options.map((option, index) => (
             <ChoiceButton
               key={option.id}

@@ -8,6 +8,11 @@ import { StatBar } from "@/components/game/stat-bar";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS } from "@/lib/data/archetypes";
 import { getArchetypeById } from "@/lib/data/archetypes";
+import {
+  RETIREMENT_AGE,
+  careerProgress,
+  careerYearsLeft,
+} from "@/lib/game/constants";
 import { getNextFameLevel } from "@/lib/game/progression";
 import { getOgRank } from "@/lib/game/ranks";
 import { adrOf, hsPercentOf, kastOf, totalClutches } from "@/lib/game/simulator";
@@ -16,6 +21,7 @@ import type { PlayerState } from "@/lib/types/game";
 
 type PlayerCardProps = {
   player: PlayerState;
+  onOpenCases?: () => void;
   className?: string;
 };
 
@@ -25,7 +31,11 @@ function money(value: number): string {
   return `$${value}`;
 }
 
-export function PlayerCard({ player, className }: PlayerCardProps) {
+export function PlayerCard({
+  player,
+  onOpenCases,
+  className,
+}: PlayerCardProps) {
   const archetype = player.archetypeId
     ? getArchetypeById(player.archetypeId)
     : null;
@@ -36,6 +46,9 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
     player.career.deaths > 0
       ? player.career.kills / player.career.deaths
       : player.career.kills;
+  const yearsLeft = careerYearsLeft(player.age);
+  const progress = careerProgress(player.age);
+  const seasonYear = player.year;
 
   return (
     <aside
@@ -102,6 +115,58 @@ export function PlayerCard({ player, className }: PlayerCardProps) {
           En el banco · sin minutos
         </div>
       )}
+
+      {/* season + career end meter */}
+      <div className="rounded-md border border-border/60 bg-background/50 px-2.5 py-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Temporada {seasonYear}
+          </p>
+          <p className="text-[10px] font-bold tabular-nums text-primary">
+            Retiro a los {RETIREMENT_AGE}
+          </p>
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/70">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-sky-500 to-primary transition-[width] duration-500"
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {player.age} años ·{" "}
+          {yearsLeft === 0
+            ? "Última temporada"
+            : `${yearsLeft} año${yearsLeft === 1 ? "" : "s"} de carrera`}
+        </p>
+      </div>
+
+      {/* cases inventory */}
+      <button
+        type="button"
+        disabled={!onOpenCases || player.casesAvailable <= 0}
+        onClick={onOpenCases}
+        className={cn(
+          "flex w-full items-center justify-between rounded-md border px-2.5 py-2 text-left transition-colors",
+          player.casesAvailable > 0
+            ? "border-amber-500/40 bg-amber-500/10 hover:border-amber-400/70 hover:bg-amber-500/15"
+            : "border-border/60 bg-background/40 opacity-70",
+        )}
+      >
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Cajas
+          </p>
+          <p className="text-sm font-black tabular-nums">
+            <span className="text-amber-400">◆</span> {player.casesAvailable}{" "}
+            disponible{player.casesAvailable === 1 ? "" : "s"}
+          </p>
+        </div>
+        {player.casesAvailable > 0 && (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+            Abrir
+          </span>
+        )}
+      </button>
 
       {/* headline scoreboard */}
       <div className="grid grid-cols-4 gap-1.5">

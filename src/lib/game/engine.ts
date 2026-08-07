@@ -33,6 +33,7 @@ import {
   ROOKIE_SALARY,
   SPLITS_PER_YEAR,
   STARTING_AGE,
+  STORE_SEASON_LIMITS,
 } from "./constants";
 import { pickEvent } from "./events";
 import {
@@ -44,6 +45,7 @@ import {
   generateOffers,
   getFameLevel,
   getNationalTeamStatus,
+  riskSuccessChance,
   shouldRetire,
 } from "./progression";
 import {
@@ -195,6 +197,7 @@ export function createPlayer(setup: CareerSetup): PlayerState {
     casesAvailable: 1,
     storeOwned: [],
     peripherals: {},
+    storeSeasonPurchases: { coaching: 0, cases: 0 },
 
     careerLog: [],
     lastSeries: null,
@@ -241,7 +244,7 @@ export function chooseArchetype(
   };
 }
 
-/** Options with a minigame pause here; everything else resolves immediately. */
+/** Options with a minigame or risk gauge pause here; else resolve immediately. */
 export function selectOption(
   runtime: GameRuntime,
   optionId: string,
@@ -256,6 +259,11 @@ export function selectOption(
     return { ...runtime, phase: "minigame", pendingOption: option };
   }
 
+  // Risky narrative choices spin the probability gauge before resolving.
+  if (option.risk) {
+    return { ...runtime, phase: "risk", pendingOption: option };
+  }
+
   return resolveOption(runtime, option, null);
 }
 
@@ -267,27 +275,118 @@ export function resolveMinigame(
   return resolveOption(runtime, runtime.pendingOption, success);
 }
 
+export function resolveRisk(
+  runtime: GameRuntime,
+  success: boolean,
+): GameRuntime {
+  if (!runtime.state || !runtime.pendingOption) return runtime;
+  return resolveOption(runtime, runtime.pendingOption, success, true);
+}
+
+/** Chance shown on the risk gauge for the pending option. */
+export function pendingRiskChance(runtime: GameRuntime): number {
+  if (!runtime.state) return 40;
+  return riskSuccessChance(runtime.state);
+}
+
+const ATTR_KEYS: AttributeKey[] = [
+  "aim",
+  "reflexes",
+  "gameSense",
+  "utility",
+  "clutch",
+  "movement",
+];
+
+/** When a risk option has no failEffects, invent a harsher fallback. */
+function invertRiskEffects(effects: StatEffects): StatEffects {
+  const fail: StatEffects = { tilt: 2, form: -1 };
+  for (const key of ATTR_KEYS) {
+    const value = effects[key];
+    if (typeof value === "number" && value > 0) fail[key] = -1;
+  }
+  if (typeof effects.fame === "number" && effects.fame > 0) {
+    fail.fame = -Math.max(1, Math.ceil(effects.fame / 2));
+  }
+  if (typeof effects.chemistry === "number") {
+    fail.chemistry = Math.min(-2, -Math.abs(effects.chemistry));
+  } else {
+    fail.chemistry = -1;
+  }
+  if (typeof effects.benchRisk === "number" && effects.benchRisk > 0) {
+    fail.benchRisk = effects.benchRisk + 8;
+  } else {
+    fail.benchRisk = 10;
+  }
+  if (typeof effects.earnings === "number" && effects.earnings > 0) {
+    fail.earnings = -Math.round(effects.earnings * 0.35);
+  }
+  if (typeof effects.transferBoost === "number" && effects.transferBoost > 0) {
+    fail.transferBoost = -Math.max(4, Math.ceil(effects.transferBoost / 2));
+  }
+  return fail;
+}
+
+/** Soften a purely-negative risk option when the gauge lands on success. */
+function softenRiskEffects(effects: StatEffects): StatEffects {
+  const soft: StatEffects = { ...effects };
+  if (typeof soft.tilt === "number" && soft.tilt > 0) {
+    soft.tilt = Math.max(0, soft.tilt - 1);
+  }
+  if (typeof soft.benchRisk === "number" && soft.benchRisk > 0) {
+    soft.benchRisk = Math.max(0, Math.round(soft.benchRisk * 0.45));
+  }
+  if (typeof soft.chemistry === "number" && soft.chemistry < 0) {
+    soft.chemistry = Math.ceil(soft.chemistry / 2);
+  }
+  if (typeof soft.form === "number" && soft.form < 0) {
+    soft.form = 0;
+  }
+  soft.fame = (soft.fame ?? 0) + 1;
+  return soft;
+}
+
 function resolveOption(
   runtime: GameRuntime,
   option: EventOption,
-  minigameSuccess: boolean | null,
+  rollSuccess: boolean | null,
+  fromRisk = false,
 ): GameRuntime {
   if (!runtime.state || !runtime.currentEvent) return runtime;
 
-  let state = applyEffects(runtime.state, option.effects);
+  let state = runtime.state;
   let outcomeText = option.outcomeText;
 
-  if (minigameSuccess === true) {
-    state = applyEffects(state, option.successEffects ?? {});
-    outcomeText = option.successText ?? option.outcomeText;
-  } else if (minigameSuccess === false) {
-    state = applyEffects(state, option.failEffects ?? {});
-    outcomeText = option.failText ?? option.outcomeText;
+  if (fromRisk && rollSuccess === true) {
+    const base =
+      option.successEffects ??
+      (option.failEffects ? option.effects : softenRiskEffects(option.effects));
+    state = applyEffects(state, base);
+    // Don't reuse outcomeText — many risk blurbs narrate the bad path only.
+    outcomeText =
+      option.successText ??
+      "La jugada sale. El riesgo valió la pena.";
+  } else if (fromRisk && rollSuccess === false) {
+    const fail = option.failEffects ?? invertRiskEffects(option.effects);
+    state = applyEffects(state, fail);
+    outcomeText =
+      option.failText ??
+      (option.outcomeText ||
+        "La jugada no sale. Te sale el tiro por la culata.");
+  } else {
+    state = applyEffects(state, option.effects);
+    if (rollSuccess === true) {
+      state = applyEffects(state, option.successEffects ?? {});
+      outcomeText = option.successText ?? option.outcomeText;
+    } else if (rollSuccess === false) {
+      state = applyEffects(state, option.failEffects ?? {});
+      outcomeText = option.failText ?? option.outcomeText;
+    }
   }
 
   let graffitiName: string | null = null;
   const earnedGraffiti = option.grantsGraffiti;
-  if (earnedGraffiti && minigameSuccess !== false) {
+  if (earnedGraffiti && rollSuccess !== false) {
     const graffiti = getGraffitiById(earnedGraffiti);
     if (graffiti && !state.graffiti.some((entry) => entry.id === graffiti.id)) {
       state = { ...state, graffiti: [...state.graffiti, graffiti] };
@@ -314,7 +413,7 @@ function resolveOption(
   }
 
   state = refreshRanks(state);
-  const outcomeKind = classifyOutcome(option, minigameSuccess, caseItem);
+  const outcomeKind = classifyOutcome(option, rollSuccess, caseItem);
 
   return {
     ...runtime,
@@ -517,6 +616,11 @@ function advanceSplit(
 
   if (yearRollover) {
     state = applyAgeing(state);
+    // New temporada: shop purchase caps reset so coaching/cases can't snowball.
+    state = {
+      ...state,
+      storeSeasonPurchases: { coaching: 0, cases: 0 },
+    };
   }
 
   state.fameLevel = getFameLevel(state.fame);
@@ -671,10 +775,45 @@ export function buyStoreItem(
     return { runtime, openCase: null, error: "Ya equipaste este periférico." };
   }
 
+  const seasonBuys = state.storeSeasonPurchases ?? { coaching: 0, cases: 0 };
+
+  if (
+    item.kind === "coaching" &&
+    seasonBuys.coaching >= STORE_SEASON_LIMITS.coaching
+  ) {
+    return {
+      runtime,
+      openCase: null,
+      error: `Límite de temporada: ${STORE_SEASON_LIMITS.coaching} sesión de coaching por año.`,
+    };
+  }
+
+  if (
+    item.grantsCase &&
+    seasonBuys.cases >= STORE_SEASON_LIMITS.cases
+  ) {
+    return {
+      runtime,
+      openCase: null,
+      error: `Límite de temporada: ${STORE_SEASON_LIMITS.cases} cajas por año.`,
+    };
+  }
+
   let next: PlayerState = {
     ...state,
     earnings: state.earnings - item.price,
   };
+
+  if (item.kind === "coaching") {
+    const buys = next.storeSeasonPurchases ?? { coaching: 0, cases: 0 };
+    next = {
+      ...next,
+      storeSeasonPurchases: {
+        ...buys,
+        coaching: buys.coaching + 1,
+      },
+    };
+  }
 
   if (item.unique || item.peripheralSlot) {
     next = {
@@ -727,7 +866,15 @@ export function buyStoreItem(
   if (item.grantsCase) {
     const caseId = caseIdForStoreItem(item);
     opened = (caseId ? getCaseById(caseId) : null) ?? randomCase();
-    next = { ...next, casesAvailable: next.casesAvailable + 1 };
+    const buys = next.storeSeasonPurchases ?? { coaching: 0, cases: 0 };
+    next = {
+      ...next,
+      casesAvailable: next.casesAvailable + 1,
+      storeSeasonPurchases: {
+        ...buys,
+        cases: buys.cases + 1,
+      },
+    };
   }
 
   next = refreshRanks(next);

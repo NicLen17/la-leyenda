@@ -2,10 +2,8 @@
 
 ## Maps (`/public/maps/`)
 
-- **Source:** [MurkyYT/cs2-map-icons](https://github.com/MurkyYT/cs2-map-icons) radar PNGs (`de_*_radar_psd.png`).
-- Mirrored CS2 depot radar overviews for Active Duty + reserve maps used in the game.
-- Liquipedia Commons overview URLs returned 404 at download time; assets are stored locally (no hotlinking).
-- UI uses `object-cover` / `object-fit: cover`. SVG radar in `MapArt` is fallback only.
+- Radar PNGs remain on disk (MurkyYT/cs2-map-icons) as optional reference assets.
+- **UI heroes** use stylised atmospheric SVG scenes in `MapAtmosphere` (street/site vibe), not top-down radars.
 
 ## Teams (`/public/teams/`)
 

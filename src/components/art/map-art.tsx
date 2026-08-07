@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
-import { getMapById } from "@/lib/data/maps";
+import { MapAtmosphere } from "@/components/art/map-atmosphere";
 import { cn } from "@/lib/utils";
 import type { SceneKind } from "@/lib/types/game";
 
@@ -11,184 +9,6 @@ type MapArtProps = {
   scene?: SceneKind;
   className?: string;
 };
-
-function hashOf(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 33 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-/** Deterministic pseudo-random generator so each map always draws the same. */
-function rng(seed: number) {
-  let state = seed || 1;
-  return () => {
-    state = (state * 1664525 + 1013904223) % 4294967296;
-    return state / 4294967296;
-  };
-}
-
-/**
- * SVG radar fallback — only used when the raster in /public/maps is missing.
- * Uses xMidYMid slice (cover) so it never stretches.
- */
-function MapRadar({ mapId }: { mapId: string }) {
-  const map = getMapById(mapId);
-  if (!map) return null;
-
-  const next = rng(hashOf(mapId));
-  const blocks = Array.from({ length: 9 }, (_, index) => ({
-    x: 8 + next() * 78,
-    y: 8 + next() * 62,
-    w: 8 + next() * 20,
-    h: 6 + next() * 16,
-    o: 0.18 + next() * 0.3,
-    key: index,
-  }));
-
-  const paths = Array.from({ length: 4 }, (_, index) => ({
-    d: `M${4 + next() * 20} ${10 + next() * 70} Q ${30 + next() * 40} ${next() * 80} ${70 + next() * 26} ${10 + next() * 70}`,
-    key: index,
-  }));
-
-  const gradientId = `map-${mapId}`;
-
-  return (
-    <svg
-      viewBox="0 0 100 88"
-      preserveAspectRatio="xMidYMid slice"
-      className="h-full w-full"
-      role="img"
-      aria-label={`Radar de ${map.name}`}
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%" stopColor={map.palette.sky} />
-          <stop offset="100%" stopColor={map.palette.structure} />
-        </linearGradient>
-        <pattern
-          id={`grid-${mapId}`}
-          width="8"
-          height="8"
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M8 0H0V8"
-            fill="none"
-            stroke={map.palette.accent}
-            strokeOpacity="0.12"
-            strokeWidth="0.4"
-          />
-        </pattern>
-      </defs>
-
-      <rect width="100" height="88" fill={`url(#${gradientId})`} />
-      <rect width="100" height="88" fill={`url(#grid-${mapId})`} />
-
-      {paths.map((path) => (
-        <path
-          key={path.key}
-          d={path.d}
-          fill="none"
-          stroke={map.palette.ground}
-          strokeOpacity="0.45"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      ))}
-
-      {blocks.map((block) => (
-        <rect
-          key={block.key}
-          x={block.x}
-          y={block.y}
-          width={block.w}
-          height={block.h}
-          rx="1.5"
-          fill={map.palette.structure}
-          fillOpacity={block.o}
-          stroke={map.palette.accent}
-          strokeOpacity="0.25"
-          strokeWidth="0.4"
-        />
-      ))}
-
-      <g>
-        <rect
-          x="12"
-          y="14"
-          width="22"
-          height="18"
-          rx="2"
-          fill={map.palette.accent}
-          fillOpacity="0.22"
-          stroke={map.palette.accent}
-          strokeOpacity="0.7"
-          strokeWidth="0.8"
-        />
-        <text
-          x="23"
-          y="25"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="10"
-          fontWeight="800"
-          fill={map.palette.accent}
-          fillOpacity="0.9"
-        >
-          {map.sites[0]}
-        </text>
-      </g>
-      <g>
-        <rect
-          x="66"
-          y="54"
-          width="22"
-          height="18"
-          rx="2"
-          fill={map.palette.accent}
-          fillOpacity="0.22"
-          stroke={map.palette.accent}
-          strokeOpacity="0.7"
-          strokeWidth="0.8"
-        />
-        <text
-          x="77"
-          y="65"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="10"
-          fontWeight="800"
-          fill={map.palette.accent}
-          fillOpacity="0.9"
-        >
-          {map.sites[1]}
-        </text>
-      </g>
-
-      <rect width="100" height="88" fill="#05070a" fillOpacity="0.34" />
-    </svg>
-  );
-}
-
-function MapRaster({ mapId, src }: { mapId: string; src: string }) {
-  const [failed, setFailed] = useState(false);
-  const map = getMapById(mapId);
-
-  if (failed) return <MapRadar mapId={mapId} />;
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- local public asset with object-cover
-    <img
-      src={src}
-      alt={map ? `Radar de ${map.name}` : "Mapa"}
-      className="h-full w-full object-cover object-center"
-      onError={() => setFailed(true)}
-      draggable={false}
-    />
-  );
-}
 
 /* ------------------------------ scene backdrops ---------------------------- */
 
@@ -349,14 +169,9 @@ const SCENES: Record<Exclude<SceneKind, "map">, () => React.JSX.Element> = {
 };
 
 export function MapArt({ mapId, scene = "map", className }: MapArtProps) {
-  const map = mapId ? getMapById(mapId) : undefined;
   const content =
     scene === "map" && mapId ? (
-      map?.imagePath ? (
-        <MapRaster mapId={mapId} src={map.imagePath} />
-      ) : (
-        <MapRadar mapId={mapId} />
-      )
+      <MapAtmosphere mapId={mapId} />
     ) : scene !== "map" ? (
       SCENES[scene]()
     ) : (
@@ -366,8 +181,8 @@ export function MapArt({ mapId, scene = "map", className }: MapArtProps) {
   return (
     <div className={cn("relative overflow-hidden", className)}>
       {content}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.14)_3px,rgba(0,0,0,0.14)_4px)] opacity-50" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,0.1)_3px,rgba(0,0,0,0.1)_4px)] opacity-30" />
     </div>
   );
 }

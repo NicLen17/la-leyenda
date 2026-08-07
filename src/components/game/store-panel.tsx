@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { STORE_ITEMS } from "@/lib/data/store";
+import { STORE_SEASON_LIMITS } from "@/lib/game/constants";
 import { cn } from "@/lib/utils";
 import type { CsCase, PlayerState, StoreItem, StoreItemKind } from "@/lib/types/game";
 
@@ -40,6 +41,12 @@ function StoreRow({
 }) {
   const owned = item.unique && player.storeOwned.includes(item.id);
   const canAfford = player.earnings >= item.price;
+  const seasonBuys = player.storeSeasonPurchases ?? { coaching: 0, cases: 0 };
+  const seasonBlocked =
+    (item.kind === "coaching" &&
+      seasonBuys.coaching >= STORE_SEASON_LIMITS.coaching) ||
+    (item.grantsCase === true &&
+      seasonBuys.cases >= STORE_SEASON_LIMITS.cases);
 
   const purchase = () => {
     const result = onBuy(item.id);
@@ -83,10 +90,10 @@ function StoreRow({
         <Button
           size="sm"
           className="h-7 px-2.5 text-[11px]"
-          disabled={owned || !canAfford}
+          disabled={owned || !canAfford || seasonBlocked}
           onClick={purchase}
         >
-          {owned ? "Comprado" : "Comprar"}
+          {owned ? "Comprado" : seasonBlocked ? "Límite año" : "Comprar"}
         </Button>
       </div>
     </div>
@@ -118,8 +125,15 @@ export function StorePanel({
             Market del jugador
           </h2>
           <p className="text-xs text-muted-foreground">
-            Se gasta del saldo de ganancias (sueldo + premios), no del sueldo
-            mensual solo.
+            Se gasta del saldo de ganancias. Coaching y cajas tienen límite por
+            temporada (año).
+          </p>
+          <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+            Esta temporada: coaching{" "}
+            {(player.storeSeasonPurchases ?? { coaching: 0 }).coaching}/
+            {STORE_SEASON_LIMITS.coaching} · cajas{" "}
+            {(player.storeSeasonPurchases ?? { cases: 0 }).cases}/
+            {STORE_SEASON_LIMITS.cases}
           </p>
         </div>
         <div className="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-right">

@@ -23,11 +23,11 @@ const CONFIG = {
   },
   defuse: {
     title: "Defuse a contrarreloj",
-    hint: "Soltá el cable exactamente en la zona verde. Una sola oportunidad.",
-    rounds: 1,
-    zone: 12,
-    speed: 2.1,
-    accelerate: 0,
+    hint: "Cinco cables. Empieza lento y se acelera en cada etapa. Soltá en la zona verde.",
+    rounds: 5,
+    zone: 18,
+    speed: 0.85,
+    accelerate: 0.38,
     action: "Cortar el cable",
   },
   smoke: {
@@ -56,6 +56,7 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
   const [position, setPosition] = useState(0);
   const [round, setRound] = useState(0);
   const [zoneStart, setZoneStart] = useState(42);
+  const [zoneWidth, setZoneWidth] = useState<number>(config.zone);
   const [feedback, setFeedback] = useState<"hit" | "miss" | null>(null);
   const direction = useRef(1);
   const speed = useRef(config.speed);
@@ -97,14 +98,15 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
 
   const begin = () => {
     speed.current = config.speed;
-    setZoneStart(20 + Math.random() * 55);
+    setZoneWidth(config.zone);
+    setZoneStart(20 + Math.random() * (70 - config.zone));
     setRound(0);
     setStarted(true);
   };
 
   const stop = () => {
     if (!started) return;
-    const hit = position >= zoneStart && position <= zoneStart + config.zone;
+    const hit = position >= zoneStart && position <= zoneStart + zoneWidth;
     setFeedback(hit ? "hit" : "miss");
 
     if (!hit) {
@@ -122,7 +124,13 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
 
     setRound(nextRound);
     speed.current += config.accelerate;
-    setZoneStart(15 + Math.random() * 62);
+    // Defuse: zone tightens slightly each cable as speed ramps up.
+    const nextZone =
+      mode === "defuse"
+        ? Math.max(11, config.zone - nextRound * 1.4)
+        : config.zone;
+    setZoneWidth(nextZone);
+    setZoneStart(15 + Math.random() * (70 - nextZone));
     window.setTimeout(() => setFeedback(null), 220);
   };
 
@@ -132,7 +140,8 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
         <span>{config.title}</span>
         {config.rounds > 1 && (
           <span className="tabular-nums">
-            {round}/{config.rounds} balas
+            {round + (started ? 1 : 0)}/{config.rounds}{" "}
+            {mode === "defuse" ? "cables" : "balas"}
           </span>
         )}
       </div>
@@ -150,7 +159,7 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
                   ? "border-destructive bg-destructive/40"
                   : "border-primary/70 bg-primary/25",
             )}
-            style={{ left: `${zoneStart}%`, width: `${config.zone}%` }}
+            style={{ left: `${zoneStart}%`, width: `${zoneWidth}%` }}
           />
           <div
             className="absolute inset-y-0 w-[3px] bg-foreground shadow-[0_0_10px_rgba(255,255,255,0.8)]"

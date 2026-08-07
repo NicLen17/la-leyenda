@@ -1438,6 +1438,15 @@ export function pickEvent(player: PlayerState): GameEvent {
     return ALL_EVENTS[Math.floor(Math.random() * ALL_EVENTS.length)];
   }
 
+  const withMinigame = eligible.filter((event) =>
+    event.options.some((option) => option.minigame),
+  );
+
+  // Bias toward clutch / skill moments so minigames show up more often.
+  if (withMinigame.length > 0 && Math.random() < 0.48) {
+    return withMinigame[Math.floor(Math.random() * withMinigame.length)];
+  }
+
   const handWritten = eligible.filter(
     (event) => !event.id.startsWith("clutch-") && !event.id.startsWith("scrim-"),
   );
