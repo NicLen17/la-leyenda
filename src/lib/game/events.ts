@@ -1457,6 +1457,7 @@ function buildOrgEvents(): GameEvent[] {
     description: `El manager de ${team.name} contactó a tu agente. ${team.blurb} Su presupuesto de roster ronda los $${Math.round(team.budgetMonthly / 1000)}k mensuales.`,
     category: "transfer" as const,
     scene: "market" as const,
+    aboutTeamId: team.id,
     options: [
       {
         id: "listen",
@@ -1490,6 +1491,7 @@ function buildBenchEvents(): GameEvent[] {
     description: `Estás sin jugar. ${team.name} te ofrece un puesto titular inmediato para recuperar ritmo, con sueldo bajo pero cámara encendida todos los fines de semana.`,
     category: "transfer" as const,
     scene: "market" as const,
+    aboutTeamId: team.id,
     requiresBenched: true,
     options: [
       {
@@ -1543,6 +1545,10 @@ function matchesPlayer(event: GameEvent, player: PlayerState): boolean {
   if (player.usedEventIds.includes(event.id)) return false;
   if (event.requiresBenched && !player.benched) return false;
   if (!event.requiresBenched && player.benched && event.category === "match") {
+    return false;
+  }
+  // Own club is renewal in the market window — not "X pregunta por vos".
+  if (event.aboutTeamId && event.aboutTeamId === player.team.id) {
     return false;
   }
   if (event.minTier !== undefined && player.team.tier > event.minTier) return false;

@@ -1,6 +1,9 @@
 /**
  * Generate optimized brand / PWA / OG assets from public/icon.png
  * Usage: node scripts/generate-brand-assets.mjs
+ *
+ * Crops the circular emblem to its true geometric center (the art is not
+ * centered in the source canvas) and masks square plate corners.
  */
 import { createRequire } from "node:module";
 import fs from "node:fs/promises";
@@ -14,6 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
 const SRC = path.join(ROOT, "public", "icon.png");
+const BACKUP = path.join(ROOT, "public", "brand", "icon-source.png");
 /** Matches dark background oklch(~0.12) */
 const BG = { r: 18, g: 16, b: 14, alpha: 1 };
 
@@ -22,13 +26,211 @@ async function ensureDir(dir) {
 }
 
 /**
+ * Find actual circular emblem bounds (ignores dark square plate).
+ * @param {Buffer} input
+ */
+async function detectEmblemCenter(input) {
+  // Downscale for detection speed
+  const probe = await sharp(input, { failOn: "none" })
+    .ensureAlpha()
+    .resize(512, 512, { fit: "inside" })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { data, info } = probe;
+  const w = info.width;
+  const h = info.height;
+  const scaleX = (await sharp(input).metadata()).width / w;
+  const scaleY = (await sharp(input).metadata()).height / h;
+
+  function isContent(x, y) {
+    const i = (y * w + x) * 4;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    if (a < 24) return false;
+    // Orange ring of the badge
+    if (r > 140 && g > 60 && g < 200 && b < 120 && r > g && r - b > 40) {
+      return true;
+    }
+    // Bright illustration vs dark plate (~32,42,52)
+    const lum = 0.3 * r + 0.59 * g + 0.11 * b;
+    if (lum <= 38) return false;
+    const dr = r - 32;
+    const dg = g - 42;
+    const db = b - 52;
+    return dr * dr + dg * dg + db * db > 900;
+  }
+
+  let minX = w;
+  let minY = h;
+  let maxX = 0;
+  let maxY = 0;
+  let n = 0;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!isContent(x, y)) continue;
+      n += 1;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (n < 100) {
+    // Fallback: full frame center
+    const meta = await sharp(input).metadata();
+    const side = Math.min(meta.width ?? 1, meta.height ?? 1);
+    return {
+      cx: (meta.width ?? side) / 2,
+      cy: (meta.height ?? side) / 2,
+      radius: side / 2,
+    };
+  }
+
+  const cx = ((minX + maxX) / 2) * scaleX;
+  const cy = ((minY + maxY) / 2) * scaleY;
+  const halfW = Math.max(cx / scaleX - minX, maxX - cx / scaleX) * scaleX;
+  const halfH = Math.max(cy / scaleY - minY, maxY - cy / scaleY) * scaleY;
+  // Small breathing room so distressed ring edge is not clipped
+  const radius = Math.ceil(Math.max(halfW, halfH) * 1.015);
+
+  return { cx, cy, radius };
+}
+
+/**
+ * Extract a square crop around the emblem's true center.
+ * @param {Buffer} input
+ * @param {number} outSize
+ */
+async function extractCenteredBadge(input, outSize = 1536) {
+  const meta = await sharp(input, { failOn: "none" }).metadata();
+  const w = meta.width ?? 1;
+  const h = meta.height ?? 1;
+  const { cx, cy, radius } = await detectEmblemCenter(input);
+
+  console.log(
+    `  Emblem center (${cx.toFixed(1)}, ${cy.toFixed(1)}) ` +
+      `δ=(${(cx - w / 2).toFixed(1)}, ${(cy - h / 2).toFixed(1)}) r=${radius}`,
+  );
+
+  const left0 = Math.round(cx - radius);
+  const top0 = Math.round(cy - radius);
+  const size0 = Math.round(radius * 2);
+
+  const extractLeft = Math.max(0, left0);
+  const extractTop = Math.max(0, top0);
+  const extractRight = Math.min(w, left0 + size0);
+  const extractBottom = Math.min(h, top0 + size0);
+  const extractW = extractRight - extractLeft;
+  const extractH = extractBottom - extractTop;
+
+  let badge = await sharp(input, { failOn: "none" })
+    .extract({
+      left: extractLeft,
+      top: extractTop,
+      width: extractW,
+      height: extractH,
+    })
+    .ensureAlpha()
+    .png()
+    .toBuffer();
+
+  const padLeft = Math.max(0, extractLeft - left0);
+  const padTop = Math.max(0, extractTop - top0);
+  const padRight = Math.max(0, left0 + size0 - extractRight);
+  const padBottom = Math.max(0, top0 + size0 - extractBottom);
+
+  if (padLeft || padTop || padRight || padBottom) {
+    badge = await sharp(badge)
+      .extend({
+        top: padTop,
+        bottom: padBottom,
+        left: padLeft,
+        right: padRight,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  }
+
+  // Force exact square + circular transparent mask + pixel rebalance
+  const squarePng = await sharp(badge)
+    .resize(outSize, outSize, { fit: "fill" })
+    .png()
+    .toBuffer();
+
+  const masked = await applyCircularMask(squarePng);
+  return rebalanceToCenter(masked);
+}
+
+/**
+ * After crop+mask, recentre opaque pixels perfectly in the square canvas.
+ * @param {Buffer} png
+ */
+async function rebalanceToCenter(png) {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const w = info.width;
+  const h = info.height;
+  let minX = w;
+  let minY = h;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (data[(y * w + x) * 4 + 3] <= 20) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (minX > maxX || minY > maxY) return png;
+
+  const contentCx = (minX + maxX) / 2;
+  const contentCy = (minY + maxY) / 2;
+  const shiftX = Math.round(w / 2 - contentCx);
+  const shiftY = Math.round(h / 2 - contentCy);
+  if (shiftX === 0 && shiftY === 0) return png;
+
+  const expandedW = w + Math.abs(shiftX);
+  const expandedH = h + Math.abs(shiftY);
+  const placeX = Math.max(0, shiftX);
+  const placeY = Math.max(0, shiftY);
+  const extractLeft = Math.max(0, -shiftX);
+  const extractTop = Math.max(0, -shiftY);
+
+  const placed = await sharp({
+    create: {
+      width: expandedW,
+      height: expandedH,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: png, left: placeX, top: placeY }])
+    .png()
+    .toBuffer();
+
+  return sharp(placed)
+    .extract({ left: extractLeft, top: extractTop, width: w, height: h })
+    .png()
+    .toBuffer();
+}
+
+/**
  * @param {Buffer} trimmed
  * @param {number} size
  * @param {{ maskable?: boolean; bg?: { r: number; g: number; b: number; alpha: number } | null; fill?: number }} opts
  */
 async function square(trimmed, size, opts = {}) {
-  const { maskable = false, bg = null, fill = 0.94 } = opts;
-  // maskable needs safe zone; UI logos fill tighter so the badge isn't floating
+  const { maskable = false, bg = null, fill = 1 } = opts;
   const padRatio = maskable ? 0.2 : Math.max(0, 1 - fill);
   const content = Math.round(size * (1 - padRatio));
   const logo = await sharp(trimmed)
@@ -40,14 +242,14 @@ async function square(trimmed, size, opts = {}) {
     .png()
     .toBuffer();
 
-  // Punch transparent corners: original art has a dark square plate behind the circle
-  const masked = await applyCircularMask(logo);
+  let masked = await applyCircularMask(logo);
+  masked = await rebalanceToCenter(masked);
 
   const background = bg
     ? { r: bg.r, g: bg.g, b: bg.b, alpha: bg.alpha ?? 1 }
     : { r: 0, g: 0, b: 0, alpha: 0 };
 
-  return sharp({
+  const out = await sharp({
     create: {
       width: size,
       height: size,
@@ -58,6 +260,9 @@ async function square(trimmed, size, opts = {}) {
     .composite([{ input: masked, gravity: "centre" }])
     .png({ compressionLevel: 9, effort: 10 })
     .toBuffer();
+
+  // When canvas === content size already, still rebalance full frame
+  return rebalanceToCenter(out);
 }
 
 /**
@@ -72,8 +277,7 @@ async function applyCircularMask(png) {
   const cx = w / 2;
   const cy = h / 2;
 
-  // Soft edge ~1px so the ring isn't harsh against page bg
-  const soft = Math.max(1, Math.round(Math.min(w, h) * 0.004));
+  const soft = Math.max(1, Math.round(Math.min(w, h) * 0.003));
   const svg = Buffer.from(
     `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -87,7 +291,6 @@ async function applyCircularMask(png) {
     </svg>`,
   );
 
-  // destination-in keeps source where mask is opaque
   return sharp(png)
     .ensureAlpha()
     .composite([{ input: svg, blend: "dest-in" }])
@@ -139,62 +342,48 @@ async function write(rel, buf) {
   console.log(`  ${kb(buf.length).padStart(10)}  ${rel}`);
 }
 
+async function loadBestSource() {
+  // Prefer largest available full-quality source
+  const candidates = [BACKUP, SRC];
+  /** @type {{ path: string; buf: Buffer; bytes: number }[]} */
+  const found = [];
+  for (const p of candidates) {
+    try {
+      const buf = await fs.readFile(p);
+      found.push({ path: p, buf, bytes: buf.byteLength });
+    } catch {
+      /* missing */
+    }
+  }
+  if (found.length === 0) {
+    throw new Error("No brand source found (public/icon.png)");
+  }
+  // Prefer BACKUP if it is a full plate; otherwise largest
+  found.sort((a, b) => b.bytes - a.bytes);
+  return found[0];
+}
+
 async function main() {
-  const input = await fs.readFile(SRC);
-  const meta = await sharp(input, { failOn: "none" }).metadata();
+  const source = await loadBestSource();
+  const meta = await sharp(source.buf, { failOn: "none" }).metadata();
   console.log(
-    `Source: ${meta.width}×${meta.height} (${kb(input.length)})`,
+    `Source: ${meta.width}×${meta.height} (${kb(source.bytes)}) from ${path.relative(ROOT, source.path)}`,
   );
 
-  // Backup full-res source once (only when still the original upload)
   await ensureDir(path.join(ROOT, "public", "brand"));
-  const backupPath = path.join(ROOT, "public", "brand", "icon-source.png");
-  let backupExists = false;
-  try {
-    await fs.access(backupPath);
-    backupExists = true;
-  } catch {
-    /* empty */
-  }
-  if (!backupExists && input.length > 500_000) {
-    // Persist a clean square master (not the 6MB full canvas)
-    const pre = await sharp(input, { failOn: "none" })
-      .trim({ threshold: 8 })
-      .png()
-      .toBuffer({ resolveWithObject: true });
-    const side = Math.min(pre.info.width, pre.info.height);
-    const left = Math.floor((pre.info.width - side) / 2);
-    const top = Math.floor((pre.info.height - side) / 2);
-    const master = await sharp(pre.data)
-      .extract({ left, top, width: side, height: side })
-      .resize(1536, 1536)
+
+  console.log("Centering badge…");
+  const trimmed = await extractCenteredBadge(source.buf, 1536);
+
+  // Always refresh master with the correctly centered plate
+  await write(
+    "public/brand/icon-source.png",
+    await sharp(trimmed)
       .png({ compressionLevel: 9, effort: 10 })
-      .toBuffer();
-    await fs.writeFile(backupPath, master);
-    console.log("  backup → public/brand/icon-source.png");
-  }
+      .toBuffer(),
+  );
 
-  const trimSource =
-    backupExists && input.length < 500_000
-      ? await fs.readFile(backupPath)
-      : input;
-
-  const trimmedRect = await sharp(trimSource, { failOn: "none" })
-    .trim({ threshold: 8 })
-    .png()
-    .toBuffer();
-  const tMeta = await sharp(trimmedRect).metadata();
-  // Emblem is circular: center-crop to square using the smaller side
-  const side = Math.min(tMeta.width ?? 0, tMeta.height ?? 0);
-  const left = Math.floor(((tMeta.width ?? side) - side) / 2);
-  const top = Math.floor(((tMeta.height ?? side) - side) / 2);
-  const trimmed = await sharp(trimmedRect)
-    .extract({ left, top, width: side, height: side })
-    .png()
-    .toBuffer();
-  console.log(`Badge square: ${side}×${side}\n`);
-
-  console.log("Brand");
+  console.log("\nBrand");
   const logo1024 = await square(trimmed, 1024);
   await write("public/brand/logo.png", logo1024);
   await write(
@@ -238,13 +427,10 @@ async function main() {
   ]);
   await write("public/favicon.ico", ico);
 
-  // Next.js metadata file conventions
   console.log("\nApp Router metadata files");
   await write("src/app/icon.png", await square(trimmed, 512, { bg: BG }));
   await write("src/app/apple-icon.png", apple);
   await write("src/app/favicon.ico", ico);
-
-  // Optimized public root icon (replaces 6MB source)
   await write("public/icon.png", await square(trimmed, 512));
 
   console.log("\nOpen Graph");
@@ -285,6 +471,29 @@ async function main() {
   await write("src/app/opengraph-image.png", og);
   await write("src/app/twitter-image.png", og);
 
+  // Verify content is centered
+  const check = await sharp(logo1024).ensureAlpha().raw().toBuffer({
+    resolveWithObject: true,
+  });
+  let minX = check.info.width;
+  let minY = check.info.height;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < check.info.height; y++) {
+    for (let x = 0; x < check.info.width; x++) {
+      if (check.data[(y * check.info.width + x) * 4 + 3] > 20) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  const dx = (minX + maxX) / 2 - check.info.width / 2;
+  const dy = (minY + maxY) / 2 - check.info.height / 2;
+  console.log(
+    `\nVerify logo.webp center delta: (${dx.toFixed(1)}, ${dy.toFixed(1)}) pad L/R/T/B ${minX}/${check.info.width - 1 - maxX}/${minY}/${check.info.height - 1 - maxY}`,
+  );
   console.log("\nDone.");
 }
 

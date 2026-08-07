@@ -400,6 +400,12 @@ export type GameEvent = {
   regions?: Region[];
   once?: boolean;
   requiresBenched?: boolean;
+  /**
+   * Org-interest / bench-offer templated events: the suitor team.
+   * Never pick these when they match the player's current club
+   * (renewal lives in the transfer window, not narrative "interest").
+   */
+  aboutTeamId?: string;
   options: EventOption[];
 };
 
