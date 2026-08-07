@@ -104,7 +104,7 @@ export function OutcomeCard({
         className,
       )}
     >
-      <div className="relative h-[38%] min-h-[160px] shrink-0">
+      <div className="relative h-[28%] min-h-[120px] shrink-0 sm:h-[38%] sm:min-h-[160px]">
         <MapArt
           mapId={mapId}
           scene={scene ?? (mapId ? "map" : "arena")}
@@ -181,7 +181,11 @@ export function OutcomeCard({
           </div>
         )}
 
-        <Button onClick={onContinue} size="lg" className="animate-fade-up mt-1">
+        <Button
+          onClick={onContinue}
+          size="lg"
+          className="animate-fade-up mt-1 h-11 w-full touch-manipulation sm:h-9 sm:w-auto"
+        >
           Continuar
         </Button>
       </div>

@@ -8,6 +8,7 @@ import type {
   SeriesResult,
   StatEffects,
 } from "@/lib/types/game";
+import { getTeamBalance } from "./team-context";
 
 /**
  * CS-first progression:
@@ -242,13 +243,18 @@ export function seriesPerformanceGrowth(
   series: SeriesResult,
   stats: RoundStats,
 ): StatEffects {
-  if (seasonRating < 0.92) {
-    // Rough split: no growth and light mechanical rust on the role's main tools.
-    // Combined with per-split attrition, mediocre form actually costs skill.
+  const balance = getTeamBalance(player.team);
+  // Superteams demand higher demos for the same skill gain.
+  const floor = 0.92 * balance.growthBar;
+  const great = 1.2 * (0.97 + balance.heat * 0.04);
+  const good = 1.1 * (0.97 + balance.heat * 0.03);
+  const ok = 1.02 * (0.97 + balance.heat * 0.02);
+
+  if (seasonRating < floor) {
     const primaries = ROLE_GROWTH[player.role];
     const rust: StatEffects = {};
     if (primaries[0]) rust[primaries[0]] = -1;
-    if (seasonRating < 0.85 && primaries[1]) rust[primaries[1]] = -1;
+    if (seasonRating < floor - 0.07 && primaries[1]) rust[primaries[1]] = -1;
     return rust;
   }
 
@@ -258,17 +264,16 @@ export function seriesPerformanceGrowth(
   let primaryGain = 0;
   let secondaryGain = 0;
 
-  if (seasonRating >= 1.2 || (series.mvp && seasonRating >= 1.1)) {
+  if (seasonRating >= great || (series.mvp && seasonRating >= good)) {
     primaryGain = 2;
     secondaryGain = 1;
-  } else if (seasonRating >= 1.1) {
+  } else if (seasonRating >= good) {
     primaryGain = 2;
     secondaryGain = 0;
-  } else if (seasonRating >= 1.02) {
+  } else if (seasonRating >= ok) {
     primaryGain = 1;
     secondaryGain = 0;
   } else {
-    // Barely average: small maintain on the role's main tool.
     primaryGain = 1;
   }
 
@@ -284,11 +289,16 @@ export function seriesPerformanceGrowth(
     growth[primaries[2]] = (growth[primaries[2]] ?? 0) + 1;
   }
 
-  // Impact signals from the box score — CS stats, not narrative tags.
-  if (stats.openingKills >= 18) {
+  // Impact thresholds scale up on bigger desks (harder to farm free stats).
+  const entryBar = Math.round(16 + balance.heat * 10);
+  const utilBar = Math.round(620 + balance.heat * 280);
+  const clutchBar = Math.round(3 + balance.heat * 2);
+  const multiBar = Math.round(5 + balance.heat * 3);
+
+  if (stats.openingKills >= entryBar) {
     growth.aim = (growth.aim ?? 0) + 1;
   }
-  if (stats.utilityDamage >= 700) {
+  if (stats.utilityDamage >= utilBar) {
     growth.utility = (growth.utility ?? 0) + 1;
   }
   const clutches =
@@ -297,10 +307,10 @@ export function seriesPerformanceGrowth(
     stats.clutches.v3 +
     stats.clutches.v4 +
     stats.clutches.v5;
-  if (clutches >= 4) {
+  if (clutches >= clutchBar) {
     growth.clutch = (growth.clutch ?? 0) + 1;
   }
-  if (stats.multiKills.k3 + stats.multiKills.k4 + stats.multiKills.k5 >= 6) {
+  if (stats.multiKills.k3 + stats.multiKills.k4 + stats.multiKills.k5 >= multiBar) {
     growth.reflexes = (growth.reflexes ?? 0) + 1;
   }
 

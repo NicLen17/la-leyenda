@@ -8,6 +8,7 @@ import type {
   RoundStats,
   SeriesResult,
   Side,
+  Team,
   Tournament,
 } from "@/lib/types/game";
 import {
@@ -16,6 +17,7 @@ import {
   PLAYERS_PER_SIDE,
   ROUNDS_TO_WIN,
 } from "./constants";
+import { getTeamBalance, type TeamBalance } from "./team-context";
 
 export function emptyRoundStats(): RoundStats {
   return {
@@ -170,17 +172,22 @@ function simulateRound(
   enemyStrength: number,
   side: Side,
   map: CsMap,
+  balance: TeamBalance,
 ): RoundOutcome {
-  const sideBonus = map.favours === side ? 0.05 : -0.05;
+  const gap = teamStrength - enemyStrength;
+  const tightness = balance.winClampTightness;
   const baseWinChance = clamp(
-    0.5 + (teamStrength - enemyStrength) / 220 + sideBonus,
-    0.15,
-    0.85,
+    0.5 + gap / 220 + (map.favours === side ? 0.05 : -0.05),
+    0.15 + tightness,
+    0.85 - tightness,
   );
 
-  // Kills per round is modelled as "win the first duel, then keep going".
-  const kpr = 0.42 + (skill / 100) * 0.5;
-  const continuation = clamp(0.3 + (skill / 100) * 0.18, 0.28, 0.5);
+  // Better enemies suppress individual multi-kill rates (pro CT side discipline).
+  const oppPressure = clamp((enemyStrength - teamStrength) / 100, -0.1, 0.18);
+  const skillEff = skill * (1 - oppPressure * 0.35);
+
+  const kpr = 0.42 + (skillEff / 100) * 0.5;
+  const continuation = clamp(0.3 + (skillEff / 100) * 0.18, 0.28, 0.5);
   const firstKillChance = clamp(kpr * (1 - continuation), 0.1, 0.72);
 
   let kills = 0;
@@ -191,7 +198,11 @@ function simulateRound(
     }
   }
 
-  const deathChance = clamp(0.74 - (skill / 100) * 0.26 - kills * 0.06, 0.18, 0.8);
+  const deathChance = clamp(
+    0.74 - (skillEff / 100) * 0.26 - kills * 0.06 + oppPressure * 0.08,
+    0.18,
+    0.82,
+  );
   const died = Math.random() < deathChance;
 
   const isEntry = player.role === "entry";
@@ -215,34 +226,32 @@ function simulateRound(
       : 0;
   const flashAssist = Math.random() < clamp(player.utility / 500, 0.04, 0.2);
 
-  // 100 HP per enemy: kills are full damage, plus chip damage on survivors.
-  const chip = Math.round(Math.random() * 60 * (0.5 + skill / 200));
+  const chip = Math.round(Math.random() * 60 * (0.5 + skillEff / 200));
   const damage = Math.min(
     MAX_ROUND_DAMAGE,
     kills * 100 + chip + utilityDamage,
   );
 
-  // Clutch situations: last man alive against X enemies.
   let clutchSize: number | null = null;
   let clutchWon = false;
   if (!died && Math.random() < 0.11) {
     clutchSize = 1 + Math.floor(Math.random() * 5);
     const clutchChance = clamp(
-      (0.62 + player.clutch / 150) / Math.pow(clutchSize, 1.25),
+      (0.62 + player.clutch / 150) / Math.pow(clutchSize, 1.25) -
+        oppPressure * 0.05,
       0.02,
       0.9,
     );
     clutchWon = Math.random() < clutchChance;
   }
 
-  // The clutch decides the round when it happens.
   const won = clutchSize
     ? clutchWon
-    : Math.random() < clamp(baseWinChance + kills * 0.07 - (died ? 0.05 : 0), 0.05, 0.95);
+    : Math.random() <
+      clamp(baseWinChance + kills * 0.07 - (died ? 0.05 : 0), 0.05, 0.95);
 
   const planted = side === "t" && won && Math.random() < 0.35;
   const defused = side === "ct" && won && Math.random() < 0.18;
-
   const kast = kills > 0 || assists > 0 || !died || Math.random() < 0.3;
 
   return {
@@ -297,7 +306,9 @@ export function simulateMap(
   teamStrength: number,
   enemyStrength: number,
   map: CsMap,
+  balance?: TeamBalance,
 ): { result: MapResult; stats: RoundStats } {
+  const org = balance ?? getTeamBalance(player.team);
   const stats = emptyRoundStats();
   let ours = 0;
   let theirs = 0;
@@ -306,17 +317,19 @@ export function simulateMap(
   // Regulation: 12 rounds per side, first to 13.
   const startSide: Side = Math.random() < 0.5 ? "ct" : "t";
   const flipSide = (side: Side): Side => (side === "ct" ? "t" : "ct");
+  const skill = individualSkill(player);
 
   while (ours < ROUNDS_TO_WIN && theirs < ROUNDS_TO_WIN) {
     const roundNumber = ours + theirs;
     const side = roundNumber < 12 ? startSide : flipSide(startSide);
     const outcome = simulateRound(
       player,
-      individualSkill(player),
+      skill,
       teamStrength,
       enemyStrength,
       side,
       map,
+      org,
     );
     accumulate(stats, outcome);
     if (outcome.won) ours += 1;
@@ -336,11 +349,12 @@ export function simulateMap(
       const side: Side = (otOurs + otTheirs) % 6 < 3 ? "ct" : "t";
       const outcome = simulateRound(
         player,
-        individualSkill(player),
+        skill,
         teamStrength,
         enemyStrength,
         side,
         map,
+        org,
       );
       accumulate(stats, outcome);
       if (outcome.won) otOurs += 1;
@@ -389,34 +403,93 @@ const PLACEMENTS: Record<number, string> = {
   4: "CAMPEÓN",
 };
 
+/** Structural roster strength + individual carry — org prestige dominates. */
+export function computeTeamStrength(
+  player: PlayerState,
+  balance: TeamBalance = getTeamBalance(player.team),
+): number {
+  const skill = individualSkill(player);
+  return clamp(
+    balance.rosterPower +
+      player.chemistry * 1.8 +
+      skill * balance.carryCoeff,
+    12,
+    128,
+  );
+}
+
+/**
+ * Sample a realistic draw: harder orgs on bigger stages / prestige desks
+ * face opponents near or above their weight class.
+ */
+function pickStageOpponent(
+  player: PlayerState,
+  tournament: Tournament,
+  stage: number,
+  balance: TeamBalance,
+): Team {
+  const targetPrestige = clamp(
+    player.team.prestige * (0.55 + balance.bracketHeat * 0.4) +
+      tournament.prestige * 0.22 +
+      stage * 5,
+    28,
+    100,
+  );
+
+  let pool = TEAMS.filter((team) => team.id !== player.team.id);
+
+  // Academic opens mostly face peers; Majors/big LANs open the field.
+  if (tournament.prestige < 45) {
+    pool = pool.filter((team) => team.tier >= 2);
+  } else if (tournament.prestige < 75) {
+    pool = pool.filter((team) => Math.abs(team.tier - player.team.tier) <= 1);
+  }
+  // High prestige events: any desk can show up, but bias stays near target.
+
+  if (pool.length === 0) {
+    pool = TEAMS.filter((team) => team.id !== player.team.id);
+  }
+
+  const ranked = [...pool].sort((a, b) => {
+    const da = Math.abs(a.prestige - targetPrestige);
+    const db = Math.abs(b.prestige - targetPrestige);
+    // Prefer slightly tougher than pure-soft draws on hot orgs.
+    const biasA = a.prestige >= targetPrestige - 4 ? -3 : 0;
+    const biasB = b.prestige >= targetPrestige - 4 ? -3 : 0;
+    return da + biasA - (db + biasB);
+  });
+
+  const window = ranked.slice(0, Math.min(10, ranked.length));
+  const roll = Math.floor(Math.pow(Math.random(), 0.7) * window.length);
+  return window[roll] ?? ranked[0] ?? TEAMS[0];
+}
+
 export function simulateSeries(
   player: PlayerState,
   tournament: Tournament,
 ): { series: SeriesResult; stats: RoundStats } {
-  const teamStrength = clamp(
-    player.team.prestige + player.chemistry * 1.5 + individualSkill(player) * 0.25,
-    10,
-    130,
-  );
+  const balance = getTeamBalance(player.team);
+  const teamStrength = computeTeamStrength(player, balance);
 
-  const opponents = TEAMS.filter(
-    (team) => team.id !== player.team.id && Math.abs(team.tier - player.team.tier) <= 1,
-  );
-  const opponent =
-    opponents[Math.floor(Math.random() * opponents.length)] ?? TEAMS[0];
-
-  // Four stages: groups, quarters, semis, final.
+  // Four stages: groups, quarters, semis, final — each with its own rival.
   let stagesWon = 0;
   let aggregateStats = emptyRoundStats();
   const maps: MapResult[] = [];
   let mapsWon = 0;
   let mapsLost = 0;
+  let lastOpponent: Team | null = null;
 
   for (let stage = 0; stage < 4; stage += 1) {
+    const opponent = pickStageOpponent(player, tournament, stage, balance);
+    lastOpponent = opponent;
+
     const stageOpponentStrength = clamp(
-      opponent.prestige + stage * 6 + (Math.random() * 10 - 5),
-      10,
-      130,
+      opponent.prestige * 0.92 +
+        tournament.prestige * 0.14 +
+        stage * balance.stageRamp +
+        (Math.random() * 10 - 5),
+      12,
+      132,
     );
 
     let stageMapsWon = 0;
@@ -431,6 +504,7 @@ export function simulateSeries(
         teamStrength,
         stageOpponentStrength,
         map,
+        balance,
       );
       maps.push(result);
       aggregateStats = mergeRoundStats(aggregateStats, stats);
@@ -459,13 +533,15 @@ export function simulateSeries(
     (tournament.prizePool * (prizeShares[stagesWon] ?? 0)) / 5,
   );
 
-  const mvp = won && rating >= 1.15;
+  // MVP bar rises with org prestige — Falcons MVPs are harder than academy ones.
+  const mvpBar = 1.12 + balance.heat * 0.1;
+  const mvp = won && rating >= mvpBar;
 
   return {
     series: {
       tournamentId: tournament.id,
       tournamentName: tournament.name,
-      opponentName: opponent.name,
+      opponentName: lastOpponent?.name ?? "Rival",
       bestOf: 3,
       maps,
       mapsWon,

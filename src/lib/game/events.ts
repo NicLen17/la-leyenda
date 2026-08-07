@@ -1,6 +1,7 @@
 import { ACTIVE_DUTY, CS_MAPS } from "@/lib/data/maps";
 import { PRO_PLAYERS } from "@/lib/data/pros";
 import { TEAMS } from "@/lib/data/teams";
+import { qualifiesForOrgInterest } from "@/lib/game/market-gates";
 import type { GameEvent, PlayerState, StatEffects } from "@/lib/types/game";
 
 /* -------------------------------------------------------------------------- */
@@ -894,6 +895,7 @@ const CAREER_EVENTS: GameEvent[] = [
     category: "career",
     scene: "presser",
     minFame: 55,
+    minTier: 1,
     once: true,
     options: [
       {
@@ -923,7 +925,9 @@ const CAREER_EVENTS: GameEvent[] = [
       "Ganaron la última serie del RMR. Es tu primer Major y el prize pool es de $1.250.000. La organización te ofrece extender contrato antes de viajar.",
     category: "career",
     scene: "arena",
-    minFame: 30,
+    // RMR path: you're already on a serious desk, not mid open qualify.
+    minFame: 28,
+    minTier: 2,
     options: [
       {
         id: "sign-before",
@@ -1257,6 +1261,8 @@ const TRANSFER_EVENTS: GameEvent[] = [
       "Tu manager te avisa que hay interés real de arriba. Quiere saber cómo querés jugar el mercado antes de sentarse a negociar.",
     category: "transfer",
     scene: "market",
+    // Real agents only call when you're on a radar — not mid open qualifier.
+    minFame: 18,
     options: [
       {
         id: "aggressive",
@@ -1547,9 +1553,13 @@ function matchesPlayer(event: GameEvent, player: PlayerState): boolean {
   if (!event.requiresBenched && player.benched && event.category === "match") {
     return false;
   }
-  // Own club is renewal in the market window — not "X pregunta por vos".
-  if (event.aboutTeamId && event.aboutTeamId === player.team.id) {
-    return false;
+  // Scout interest: same prestige/proof gates as real contract market.
+  // Never your current club (renewal is the market window).
+  if (event.aboutTeamId) {
+    const suitor = TEAMS.find((team) => team.id === event.aboutTeamId);
+    if (!suitor || !qualifiesForOrgInterest(player, suitor)) {
+      return false;
+    }
   }
   if (event.minTier !== undefined && player.team.tier > event.minTier) return false;
   if (event.maxTier !== undefined && player.team.tier < event.maxTier) return false;
@@ -1562,12 +1572,26 @@ function matchesPlayer(event: GameEvent, player: PlayerState): boolean {
   return true;
 }
 
+/** Safe pool when nothing matches — never inject elite org-interest by accident. */
+function safeFallbackEvents(player: PlayerState): GameEvent[] {
+  return ALL_EVENTS.filter((event) => {
+    if (event.aboutTeamId) {
+      const suitor = TEAMS.find((team) => team.id === event.aboutTeamId);
+      if (!suitor || !qualifiesForOrgInterest(player, suitor)) return false;
+    }
+    if (event.requiresBenched && !player.benched) return false;
+    return true;
+  });
+}
+
 /** Weighted so the player always gets a mix of match, team and life events. */
 export function pickEvent(player: PlayerState): GameEvent {
   const eligible = ALL_EVENTS.filter((event) => matchesPlayer(event, player));
 
   if (eligible.length === 0) {
-    return ALL_EVENTS[Math.floor(Math.random() * ALL_EVENTS.length)];
+    const safe = safeFallbackEvents(player);
+    const pool = safe.length > 0 ? safe : ALL_EVENTS.filter((e) => !e.aboutTeamId);
+    return pool[Math.floor(Math.random() * pool.length)] ?? ALL_EVENTS[0];
   }
 
   const withMinigame = eligible.filter((event) =>

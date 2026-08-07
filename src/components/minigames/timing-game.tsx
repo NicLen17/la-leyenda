@@ -14,6 +14,11 @@ import { cn } from "@/lib/utils";
 
 type TimingGameProps = {
   mode: "defuse" | "plant";
+  /**
+   * Org / stage pressure. 1 = baseline, higher = faster bar + tighter zone
+   * (supteam scrims demand cleaner plants/defuses).
+   */
+  difficulty?: number;
   onComplete: (success: boolean) => void;
 };
 
@@ -44,16 +49,25 @@ const CONFIG = {
   },
 } as const;
 
-export function TimingGame({ mode, onComplete }: TimingGameProps) {
+export function TimingGame({
+  mode,
+  difficulty = 1,
+  onComplete,
+}: TimingGameProps) {
   const config = CONFIG[mode];
+  const hard = Math.min(1.45, Math.max(0.75, difficulty));
+  const baseZone = Math.max(14, Math.round(config.zone / hard));
+  const baseSpeed = config.speed * hard;
+  const accel = config.accelerate * (0.85 + hard * 0.25);
+
   const [started, setStarted] = useState(false);
   const [position, setPosition] = useState(0);
   const [round, setRound] = useState(0);
   const [zoneStart, setZoneStart] = useState(42);
-  const [zoneWidth, setZoneWidth] = useState<number>(config.zone);
+  const [zoneWidth, setZoneWidth] = useState<number>(baseZone);
   const [feedback, setFeedback] = useState<"hit" | "miss" | null>(null);
   const direction = useRef(1);
-  const speed = useRef(config.speed);
+  const speed = useRef(baseSpeed);
   const running = useRef(false);
   const frame = useRef<number | null>(null);
 
@@ -91,9 +105,9 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
   }, [started]);
 
   const begin = () => {
-    speed.current = config.speed;
-    setZoneWidth(config.zone);
-    setZoneStart(20 + Math.random() * (70 - config.zone));
+    speed.current = baseSpeed;
+    setZoneWidth(baseZone);
+    setZoneStart(20 + Math.random() * (70 - baseZone));
     setRound(0);
     setStarted(true);
     playReady();
@@ -129,12 +143,11 @@ export function TimingGame({ mode, onComplete }: TimingGameProps) {
     }
 
     setRound(nextRound);
-    speed.current += config.accelerate;
-    // Defuse: zone tightens only slightly — stay fair across all cables.
+    speed.current += accel;
     const nextZone =
       mode === "defuse"
-        ? Math.max(18, config.zone - nextRound * 1.5)
-        : config.zone;
+        ? Math.max(14, baseZone - nextRound * (1.2 + hard * 0.6))
+        : baseZone;
     setZoneWidth(nextZone);
     setZoneStart(15 + Math.random() * (70 - nextZone));
     window.setTimeout(() => setFeedback(null), 220);

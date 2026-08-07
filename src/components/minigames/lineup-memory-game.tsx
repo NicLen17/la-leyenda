@@ -300,17 +300,17 @@ export function LineupMemoryGame({
       )}
 
       {stage === "study" && lineup && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-lg border border-amber-500/35 bg-[#0c121a] p-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5 rounded-lg border border-amber-500/35 bg-[#0c121a] p-2 sm:gap-2 sm:p-3">
           <div className="flex items-center justify-between gap-2">
             <UtilityBadge utility={lineup.utility} />
             <p className="text-[11px] font-bold uppercase tracking-wider text-amber-300">
               Memorizá · {(studyLeft / 1000).toFixed(1)}s
             </p>
           </div>
-          <p className="text-center text-base font-black uppercase tracking-tight">
+          <p className="text-center text-sm font-black uppercase tracking-tight sm:text-base">
             {lineup.map} · {lineup.from} → {lineup.to}
           </p>
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="hidden text-center text-xs text-muted-foreground sm:block">
             Aim en la {lineup.landmark}
           </p>
           <AimWall
@@ -468,7 +468,7 @@ function AimWall({
       </svg>
 
       <div
-        className="relative grid h-full min-h-[160px] gap-1 p-2"
+        className="relative grid h-full min-h-[120px] flex-1 gap-1 p-1.5 sm:min-h-[160px] sm:p-2"
         style={{
           gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,

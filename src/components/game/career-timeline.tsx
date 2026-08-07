@@ -14,9 +14,11 @@ import type { SeasonSummary } from "@/lib/types/game";
 
 type CareerTimelineProps = {
   log: SeasonSummary[];
+  /** Icon-friendly label for tight mobile toolbars. */
+  compact?: boolean;
 };
 
-export function CareerTimeline({ log }: CareerTimelineProps) {
+export function CareerTimeline({ log, compact = false }: CareerTimelineProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,12 +27,22 @@ export function CareerTimeline({ log }: CareerTimelineProps) {
         type="button"
         variant="secondary"
         size="sm"
-        className="h-9 gap-1.5 border border-border/70 px-3 text-xs font-bold"
+        className={cn(
+          "h-9 shrink-0 gap-1.5 border border-border/70 text-xs font-bold",
+          compact ? "px-2.5 sm:px-3" : "px-3",
+        )}
         onClick={() => setOpen(true)}
       >
-        Ver carrera
+        {compact ? (
+          <>
+            <span className="sm:hidden">Carrera</span>
+            <span className="hidden sm:inline">Ver carrera</span>
+          </>
+        ) : (
+          "Ver carrera"
+        )}
       </Button>
-      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Timeline de carrera</DialogTitle>
         </DialogHeader>

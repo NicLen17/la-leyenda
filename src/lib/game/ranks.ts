@@ -6,6 +6,7 @@ import type {
   RankSnapshot,
 } from "@/lib/types/game";
 import { individualSkill } from "./simulator";
+import { getTeamBalance } from "./team-context";
 
 type PremierBandMeta = {
   id: PremierBand;
@@ -156,6 +157,8 @@ export function computePremierRating(player: PlayerState): number {
   const winPart = winRate * 2_400;
   const tierPart =
     player.team.tier === 1 ? 2_800 : player.team.tier === 2 ? 1_200 : 0;
+  // Soft prestige curve so not every T1 desk sits at the same Premier floor.
+  const prestigePart = Math.round(getTeamBalance(player.team).heat * 1_400);
   const top20Part = player.hltvTop20
     ? Math.max(0, 21 - player.hltvTop20) * 180
     : 0;
@@ -171,6 +174,7 @@ export function computePremierRating(player: PlayerState): number {
     volumePart +
     winPart +
     tierPart +
+    prestigePart +
     top20Part +
     formPart -
     benchPenalty;

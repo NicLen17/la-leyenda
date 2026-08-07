@@ -200,16 +200,16 @@ export function CaseOpening({ csCase, onUnboxed, onClose }: CaseOpeningProps) {
   const centerIndex = offset / ITEM_WIDTH;
 
   return (
-    <div className="flex flex-col gap-3 overflow-x-hidden pt-1">
+    <div className="flex flex-col gap-3 overflow-hidden pt-1">
       <div className="flex flex-col items-center gap-2 text-center">
-        {/* Extra vertical room so the case drop-shadow isn't clipped by the dialog edge. */}
-        <div className="flex h-[7.25rem] items-center justify-center overflow-visible">
+        {/* Tall enough for scale-110 + drop-shadow so transforms never expand the dialog. */}
+        <div className="flex h-24 items-center justify-center overflow-hidden sm:h-32">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/ui/cs2-case.webp"
             alt=""
             className={cn(
-              "h-24 w-auto object-contain drop-shadow-[0_10px_24px_rgba(250,204,21,0.28)] transition-all duration-700 ease-out",
+              "h-20 w-auto object-contain drop-shadow-[0_10px_24px_rgba(250,204,21,0.28)] transition-transform duration-700 ease-out sm:h-24",
               phase === "preopen" && "scale-110",
               phase === "spinning" && "scale-100 opacity-80",
               phase === "done" && "scale-110",
@@ -226,58 +226,60 @@ export function CaseOpening({ csCase, onUnboxed, onClose }: CaseOpeningProps) {
       </div>
 
       {/*
-        Clip wrapper stays unscaled so reel zoom never spills horizontally
-        outside the modal.
+        Fixed viewport absorbs reel zoom (scale 0.92→1.05) so transforms never
+        create scrollable overflow on the dialog.
       */}
       <div className="overflow-hidden rounded-lg border border-border bg-[#0a0e14]">
-        <div
-          className={cn(
-            "relative py-2 transition-transform duration-700 ease-out",
-            phase === "idle" && "scale-[0.92]",
-            phase === "preopen" && "scale-105",
-            (phase === "spinning" || phase === "done") && "scale-100",
-          )}
-        >
+        <div className="flex h-[148px] items-center overflow-hidden sm:h-[172px]">
           <div
-            className="absolute left-1/2 top-0 z-20 h-full w-[2px] -translate-x-1/2 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.9)]"
-            aria-hidden
-          />
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#0a0e14] via-[#0a0e14]/80 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#0a0e14] via-[#0a0e14]/80 to-transparent" />
-
-          {/*
-            Anchor the reel at the viewport center with left:50%, then shift by
-            half a slot + offset. Avoids translateX(50%) which breaks when the
-            strip is width:max-content (looks like a tiny scroll).
-          */}
-          <div
-            className="relative flex h-[148px] will-change-transform"
-            style={{
-              width: "max-content",
-              marginLeft: "50%",
-              transform: `translateX(calc(-${ITEM_WIDTH / 2}px - ${offset}px))`,
-            }}
+            className={cn(
+              "relative w-full py-2 transition-transform duration-700 ease-out",
+              phase === "idle" && "scale-[0.92]",
+              phase === "preopen" && "scale-105",
+              (phase === "spinning" || phase === "done") && "scale-100",
+            )}
           >
-            {reelItems.map((item, index) => {
-              const distance = index - centerIndex;
-              const scale =
-                phase === "idle" ? itemScale(distance) * 0.96 : itemScale(distance);
-              const isWinner = Boolean(won) && index === WINNER_INDEX;
-              // Distance-based stack so the centered card always paints above neighbors.
-              const zIndex = isWinner
-                ? 200
-                : Math.round(100 - Math.abs(distance) * 20);
+            <div
+              className="absolute left-1/2 top-0 z-20 h-full w-[2px] -translate-x-1/2 bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.9)]"
+              aria-hidden
+            />
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[#0a0e14] via-[#0a0e14]/80 to-transparent sm:w-20" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[#0a0e14] via-[#0a0e14]/80 to-transparent sm:w-20" />
 
-              return (
-                <ItemCard
-                  key={`${item.id}-${index}`}
-                  item={item}
-                  highlight={isWinner}
-                  scale={scale}
-                  zIndex={zIndex}
-                />
-              );
-            })}
+            {/*
+              Anchor the reel at the viewport center with left:50%, then shift by
+              half a slot + offset. Avoids translateX(50%) which breaks when the
+              strip is width:max-content (looks like a tiny scroll).
+            */}
+            <div
+              className="relative flex h-[148px] will-change-transform"
+              style={{
+                width: "max-content",
+                marginLeft: "50%",
+                transform: `translateX(calc(-${ITEM_WIDTH / 2}px - ${offset}px))`,
+              }}
+            >
+              {reelItems.map((item, index) => {
+                const distance = index - centerIndex;
+                const scale =
+                  phase === "idle" ? itemScale(distance) * 0.96 : itemScale(distance);
+                const isWinner = Boolean(won) && index === WINNER_INDEX;
+                // Distance-based stack so the centered card always paints above neighbors.
+                const zIndex = isWinner
+                  ? 200
+                  : Math.round(100 - Math.abs(distance) * 20);
+
+                return (
+                  <ItemCard
+                    key={`${item.id}-${index}`}
+                    item={item}
+                    highlight={isWinner}
+                    scale={scale}
+                    zIndex={zIndex}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

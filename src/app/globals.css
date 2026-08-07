@@ -125,9 +125,20 @@
     @apply bg-background text-foreground;
     /* The game is designed to fit the viewport; scrolling is opt-in per panel. */
     overscroll-behavior: none;
+    /* Avoid iOS Safari rubber-banding into white gaps. */
+    -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply font-sans;
+    /* Prefer dynamic viewport units where available. */
+    height: 100%;
+  }
+
+  /* Touch-friendly: keep interactive game surfaces from scrolling the page. */
+  .touch-game-surface {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   /* Themed scrollbars (WebKit + Firefox) */
@@ -432,12 +443,10 @@
   from {
     opacity: 0;
     transform: translate3d(0, 18px, 0);
-    letter-spacing: 0.28em;
   }
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-    letter-spacing: 0.08em;
   }
 }
 

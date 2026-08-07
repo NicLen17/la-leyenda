@@ -19,6 +19,17 @@ export const SITE_KEYWORDS = [
 export const THEME_COLOR = "#e8a317";
 export const BACKGROUND_COLOR = "#12100e";
 
+/**
+ * Bump when replacing brand/icon assets so browsers + SW drop stale cache.
+ */
+export const BRAND_ASSET_VERSION = "4";
+
+/** Versioned public path for brand/PWA media. */
+export function brandAsset(path: string): string {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${clean}?v=${BRAND_ASSET_VERSION}`;
+}
+
 export function getSiteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
   if (explicit) return explicit;

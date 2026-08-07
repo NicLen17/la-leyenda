@@ -32,7 +32,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3 p-4">
+    <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
       <header className="shrink-0">
         <h1 className="text-2xl font-black uppercase tracking-tight">
           Tu vitrina

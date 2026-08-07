@@ -285,7 +285,7 @@ export function RetirementCard({
         </div>
 
         {/* Career KPI chips — identical language to sidebar counters */}
-        <div className="grid shrink-0 grid-cols-4 gap-1.5">
+        <div className="grid shrink-0 grid-cols-2 gap-1.5 sm:grid-cols-4">
           {careerKpis.map((stat, index) => (
             <KpiCell
               key={stat.label}

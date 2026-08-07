@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { MuteButton } from "@/components/game/mute-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +19,8 @@ import {
 } from "@/components/ui/select";
 import {
   PLAY_BUTTON_NAV_DELAY_MS,
-  isMuted,
   playMenuClick,
   playPlayButton,
-  setMuted,
-  subscribeMute,
 } from "@/lib/audio/sounds";
 import { ROLES } from "@/lib/data/archetypes";
 import {
@@ -90,12 +87,6 @@ export function SetupForm({
     NATIONALITIES["south-america"][0],
   );
   const [role, setRole] = useState<Role>("entry");
-  const [audioMuted, setAudioMuted] = useState(false);
-
-  useEffect(() => {
-    setAudioMuted(isMuted());
-    return subscribeMute(setAudioMuted);
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -169,23 +160,7 @@ export function SetupForm({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={launching}
-            aria-pressed={audioMuted}
-            aria-label={audioMuted ? "Activar sonido" : "Silenciar juego"}
-            title={audioMuted ? "Activar sonido" : "Silenciar juego"}
-            className="size-8 border-white/15 bg-black/35 px-0 text-muted-foreground hover:bg-black/50 hover:text-foreground"
-            onClick={() => setMuted(!audioMuted)}
-          >
-            {audioMuted ? (
-              <VolumeX className="size-4" aria-hidden />
-            ) : (
-              <Volume2 className="size-4" aria-hidden />
-            )}
-          </Button>
+          <MuteButton disabled={launching} className="size-8" />
           <Button
             size="sm"
             disabled={!daily || launching}
@@ -316,7 +291,7 @@ export function SetupForm({
               </p>
             ) : null}
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
             {ROLES.map((item) => (
               <button
                 key={item.id}
@@ -329,7 +304,7 @@ export function SetupForm({
                 }}
                 onClick={() => setRole(item.id)}
                 className={cn(
-                  "relative min-h-[5.5rem] overflow-hidden rounded-xl border text-center transition-all hover:-translate-y-0.5 sm:min-h-[6.75rem] disabled:pointer-events-none disabled:opacity-50",
+                  "relative min-h-[4.5rem] overflow-hidden rounded-xl border text-center transition-all hover:-translate-y-0.5 sm:min-h-[6.75rem] disabled:pointer-events-none disabled:opacity-50",
                   role === item.id
                     ? "border-primary shadow-[0_0_24px_rgba(251,191,36,0.22)]"
                     : "border-white/10 hover:border-primary/40",
@@ -347,11 +322,11 @@ export function SetupForm({
                     role === item.id && "from-amber-950/90 via-black/55 to-amber-900/20",
                   )}
                 />
-                <span className="relative z-10 flex h-full min-h-[5.5rem] flex-col justify-end px-1 py-2 sm:min-h-[6.75rem] sm:px-1.5 sm:py-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-primary sm:text-[10px]">
+                <span className="relative z-10 flex h-full min-h-[4.5rem] flex-col justify-end px-1.5 py-1.5 sm:min-h-[6.75rem] sm:px-1.5 sm:py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary sm:text-[10px]">
                     {item.tag}
                   </p>
-                  <p className="mt-0.5 text-[10px] font-bold leading-tight drop-shadow sm:text-[12px]">
+                  <p className="mt-0.5 text-[11px] font-bold leading-tight drop-shadow sm:text-[12px]">
                     {item.label}
                   </p>
                 </span>
@@ -360,7 +335,7 @@ export function SetupForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="sticky bottom-0 z-10 grid grid-cols-2 gap-2 bg-gradient-to-t from-black/90 via-black/70 to-transparent pb-0.5 pt-2">
           <Button
             type="button"
             variant="outline"

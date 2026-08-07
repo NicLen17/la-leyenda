@@ -7,6 +7,7 @@ import {
   type ShotResult,
 } from "@/components/minigames/shot-result";
 import { Button } from "@/components/ui/button";
+import { useCoarsePointer } from "@/lib/hooks/use-coarse-pointer";
 import { playGunshot, playReady, playSound } from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +20,14 @@ type FlickGameProps = {
 
 type Target = { id: number; x: number; y: number; size: number };
 
-function makeTarget(id: number, difficulty: number): Target {
-  const size = Math.max(30, 62 - difficulty * 5);
+function makeTarget(id: number, difficulty: number, coarse: boolean): Target {
+  const minSize = coarse ? 44 : 30;
+  const base = coarse ? 68 : 62;
+  const size = Math.max(minSize, base - difficulty * (coarse ? 4 : 5));
   return {
     id,
-    x: 6 + Math.random() * 82,
-    y: 8 + Math.random() * 76,
+    x: 8 + Math.random() * 78,
+    y: 10 + Math.random() * 72,
     size,
   };
 }
@@ -34,6 +37,7 @@ export function FlickGame({
   msPerTarget = 900,
   onComplete,
 }: FlickGameProps) {
+  const coarse = useCoarsePointer();
   const [started, setStarted] = useState(false);
   const [target, setTarget] = useState<Target | null>(null);
   const [index, setIndex] = useState(0);
@@ -73,12 +77,12 @@ export function FlickGame({
         setTarget(null);
         window.setTimeout(() => onComplete(true), 420);
       } else {
-        setTarget(makeTarget(nextIndex, nextIndex));
+        setTarget(makeTarget(nextIndex, nextIndex, coarse));
         setTimeLeft(msPerTarget);
       }
       setIndex(nextIndex);
     },
-    [index, msPerTarget, onComplete, required],
+    [coarse, index, msPerTarget, onComplete, required],
   );
 
   useEffect(() => {
@@ -99,19 +103,19 @@ export function FlickGame({
 
   const begin = () => {
     setStarted(true);
-    setTarget(makeTarget(0, 0));
+    setTarget(makeTarget(0, 0, coarse));
     setTimeLeft(msPerTarget);
     playReady();
   };
 
   return (
-    <div className="flex h-full flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 sm:gap-2">
       <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
         <span>Aim / Flick</span>
         <ShotResultPips results={results} />
       </div>
 
-      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+      <p className="shrink-0 rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-[11px] text-muted-foreground sm:text-xs">
         Necesitás{" "}
         <span className="font-semibold text-foreground">{required}</span>{" "}
         impactos seguidos · un fallo y termina.
@@ -119,7 +123,7 @@ export function FlickGame({
 
       <div
         className={cn(
-          "relative flex-1 overflow-hidden rounded-lg border border-border/60 bg-[#10161d]",
+          "relative min-h-[180px] flex-1 touch-manipulation overflow-hidden rounded-lg border border-border/60 bg-[#10161d]",
           missFlash && "border-destructive/70",
         )}
         style={{
@@ -137,7 +141,7 @@ export function FlickGame({
         }}
       >
         {!started && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
             <p className="max-w-xs text-sm text-muted-foreground">
               {required} objetivos, menos de un segundo cada uno. Un miss y
               perdés.
@@ -158,6 +162,9 @@ export function FlickGame({
               top: `${target.y}%`,
               width: target.size,
               height: target.size,
+              // Invisible hit padding on touch without growing the visual too much.
+              minWidth: coarse ? 44 : undefined,
+              minHeight: coarse ? 44 : undefined,
               transform: "translate(-50%, -50%)",
             }}
             onClick={(event) => {

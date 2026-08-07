@@ -18,6 +18,7 @@ import {
   evaluateMarketAccess,
   qualifiesForTeam,
 } from "./market-gates";
+import { getTeamBalance } from "./team-context";
 import { individualSkill, totalClutches } from "./simulator";
 
 export { evaluateMarketAccess } from "./market-gates";
@@ -248,13 +249,17 @@ export function generateOffers(player: PlayerState, count = 5): TeamOffer[] {
     );
   }
 
-  // Favour unlocked ceiling + budget depth + home region.
+  // Favour orgs near the player's scouted ceiling (next realistic step up).
   const weighted = [...candidates].sort((a, b) => {
     const score = (team: Team) => {
       const region = team.region === player.region ? 14 : 0;
       const tierFit = team.tier === access.maxTier ? 18 : team.tier < 3 ? 6 : 0;
       const wallet = Math.min(team.budgetMonthly / 8_000, 28);
-      return team.prestige + region + tierFit + wallet;
+      const gap = access.maxPrestige - team.prestige;
+      // Prefer desks you just unlocked, not random low academies padded in.
+      const ceilingFit =
+        gap >= 0 && gap <= 18 ? 22 : gap > 18 && gap <= 35 ? 8 : 0;
+      return team.prestige + region + tierFit + wallet + ceilingFit;
     };
     return score(b) - score(a);
   });
@@ -410,11 +415,14 @@ export function shouldRetire(player: PlayerState): boolean {
 
 /** Base success chance for risky narrative choices (gauge spin). */
 export function riskSuccessChance(player: PlayerState): number {
+  const balance = getTeamBalance(player.team);
+  // Elite desks punish reckless calls; academias forgive more variance.
   const raw =
     38 +
     player.gameSense * 0.22 +
     player.form * 3 +
     player.chemistry * 1.5 -
-    player.tilt * 2.5;
-  return clamp(Math.round(raw), 22, 72);
+    player.tilt * 2.5 +
+    balance.riskDelta;
+  return clamp(Math.round(raw), 18, 74);
 }

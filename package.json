@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "optimize:images": "node scripts/optimize-images.mjs",
-    "generate:brand": "node scripts/generate-brand-assets.mjs"
+    "generate:brand": "node scripts/generate-brand-assets.mjs",
+    "sync:brand": "node scripts/sync-brand-assets.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

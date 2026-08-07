@@ -62,9 +62,26 @@ function StoreRow({
     }
   };
 
+  const disabled = owned || !canAfford || seasonBlocked;
+  const ctaLabel = owned ? "Comprado" : seasonBlocked ? "Límite año" : "Comprar";
+
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-background/40 px-2.5 py-2">
-      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/50 bg-black/40">
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={purchase}
+      aria-label={
+        disabled
+          ? `${item.name} — ${ctaLabel}`
+          : `Comprar ${item.name} por ${money(item.price)}`
+      }
+      className={cn(
+        "flex w-full touch-manipulation items-center gap-2.5 rounded-lg border border-border/60 bg-background/40 px-2.5 py-2.5 text-left transition-colors sm:py-2",
+        "hover:border-primary/50 hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "disabled:pointer-events-none disabled:opacity-55",
+      )}
+    >
+      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/50 bg-black/40 sm:size-12">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={item.imagePath ?? "/ui/cs2-case.webp"}
@@ -75,7 +92,7 @@ function StoreRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold leading-tight">{item.name}</p>
-        <p className="truncate text-[11px] text-muted-foreground">
+        <p className="line-clamp-2 text-[11px] text-muted-foreground sm:truncate sm:line-clamp-none">
           {item.description}
         </p>
         {item.buff && (
@@ -90,16 +107,19 @@ function StoreRow({
         <span className="text-sm font-black tabular-nums text-primary">
           {money(item.price)}
         </span>
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-[11px]"
-          disabled={owned || !canAfford || seasonBlocked}
-          onClick={purchase}
+        <span
+          className={cn(
+            "inline-flex h-8 min-w-[4.5rem] items-center justify-center rounded-md px-2.5 text-[11px] font-semibold sm:h-7",
+            disabled
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary text-primary-foreground",
+          )}
+          aria-hidden
         >
-          {owned ? "Comprado" : seasonBlocked ? "Límite año" : "Comprar"}
-        </Button>
+          {ctaLabel}
+        </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -118,16 +138,16 @@ export function StorePanel({
   );
 
   return (
-    <div className="flex max-h-[min(78vh,640px)] flex-col gap-2">
-      <header className="flex shrink-0 items-start justify-between gap-2 border-b border-border/50 pb-2">
-        <div>
+    <div className="flex max-h-[min(78dvh,640px)] flex-col gap-2">
+      <header className="flex shrink-0 items-start justify-between gap-2 border-b border-border/50 pb-2 pr-10 sm:pr-8">
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary">
             Tienda
           </p>
-          <h2 className="text-lg font-black uppercase tracking-tight">
+          <h2 className="text-base font-black uppercase tracking-tight sm:text-lg">
             Market del jugador
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground sm:text-xs">
             Se gasta del saldo de ganancias. Coaching y cajas tienen límite por
             temporada (año).
           </p>
@@ -139,7 +159,7 @@ export function StorePanel({
             {STORE_SEASON_LIMITS.cases}
           </p>
         </div>
-        <div className="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-right">
+        <div className="shrink-0 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-right">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Saldo
           </p>
@@ -149,7 +169,7 @@ export function StorePanel({
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-0.5 sm:pr-1">
         {groups.map((group) => (
           <section key={group.kind} className="space-y-1.5">
             <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -170,8 +190,13 @@ export function StorePanel({
         ))}
       </div>
 
-      <div className="flex shrink-0 justify-end border-t border-border/50 pt-2">
-        <Button variant="secondary" size="sm" onClick={onClose}>
+      <div className="flex shrink-0 justify-stretch border-t border-border/50 pt-2 sm:justify-end">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-10 w-full touch-manipulation sm:h-8 sm:w-auto"
+          onClick={onClose}
+        >
           Cerrar tienda
         </Button>
       </div>

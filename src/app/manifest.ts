@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import {
   BACKGROUND_COLOR,
+  brandAsset,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_SHORT_NAME,
@@ -28,25 +29,25 @@ export default function manifest(): MetadataRoute.Manifest {
     prefer_related_applications: false,
     icons: [
       {
-        src: "/icons/icon-192.png",
+        src: brandAsset("/icons/icon-192.png"),
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-512.png",
+        src: brandAsset("/icons/icon-512.png"),
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-192-maskable.png",
+        src: brandAsset("/icons/icon-192-maskable.png"),
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/icons/icon-512-maskable.png",
+        src: brandAsset("/icons/icon-512-maskable.png"),
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
@@ -58,21 +59,27 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Jugar",
         description: "Empezar o continuar tu carrera",
         url: "/",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [
+          { src: brandAsset("/icons/icon-192.png"), sizes: "192x192" },
+        ],
       },
       {
         name: "Ranking",
         short_name: "Ranking",
         description: "Ver el ranking global",
         url: "/ranking",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [
+          { src: brandAsset("/icons/icon-192.png"), sizes: "192x192" },
+        ],
       },
       {
         name: "Perfil",
         short_name: "Perfil",
         description: "Tu historial y logros",
         url: "/profile",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [
+          { src: brandAsset("/icons/icon-192.png"), sizes: "192x192" },
+        ],
       },
     ],
   };

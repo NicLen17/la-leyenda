@@ -134,7 +134,7 @@ export function SeasonSummary({
       {/* Hero result banner */}
       <header
         className={cn(
-          "relative shrink-0 overflow-hidden px-5 py-5",
+          "relative shrink-0 overflow-hidden px-3 py-3.5 sm:px-5 sm:py-5",
           champion
             ? "bg-gradient-to-br from-primary/25 via-amber-500/10 to-transparent"
             : summary.benched
@@ -142,7 +142,7 @@ export function SeasonSummary({
               : "bg-gradient-to-br from-border/40 via-transparent to-transparent",
         )}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-xs sm:tracking-[0.28em]">
           {summary.year} · Split {splitLabel} · {summary.age} años ·{" "}
           {summary.teamName}
           {yearsLeft !== undefined && (
@@ -151,9 +151,9 @@ export function SeasonSummary({
             </span>
           )}
         </p>
-        <div className="mt-2 flex items-end justify-between gap-4">
+        <div className="mt-2 flex items-end justify-between gap-3 sm:gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl font-black uppercase leading-none tracking-tight md:text-3xl">
+            <h2 className="text-xl font-black uppercase leading-none tracking-tight sm:text-2xl md:text-3xl">
               {summary.tournamentName}
             </h2>
             <p
@@ -253,18 +253,22 @@ export function SeasonSummary({
         <p className="text-sm italic text-muted-foreground">{summary.rivalNote}</p>
       </div>
 
-      <div className="flex shrink-0 flex-col gap-2 border-t border-border/50 p-4 sm:flex-row">
+      <div className="flex shrink-0 flex-col gap-2 border-t border-border/50 p-3 sm:flex-row sm:p-4">
         {onRetire && summary.age >= 27 && (
           <Button
             variant="outline"
             onClick={onRetire}
-            className="sm:w-auto"
+            className="h-11 w-full touch-manipulation sm:h-9 sm:w-auto"
             size="lg"
           >
             Retirarse
           </Button>
         )}
-        <Button onClick={onContinue} className="flex-1" size="lg">
+        <Button
+          onClick={onContinue}
+          className="h-11 w-full flex-1 touch-manipulation sm:h-9"
+          size="lg"
+        >
           Siguiente split
         </Button>
       </div>

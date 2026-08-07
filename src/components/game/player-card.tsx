@@ -26,6 +26,7 @@ import {
 import { getNextFameLevel } from "@/lib/game/progression";
 import { getOgRank, getPremierBand } from "@/lib/game/ranks";
 import { adrOf, hsPercentOf, kastOf, totalClutches } from "@/lib/game/simulator";
+import { getTeamBalance } from "@/lib/game/team-context";
 import { cn } from "@/lib/utils";
 import type { PlayerState } from "@/lib/types/game";
 
@@ -70,6 +71,7 @@ export function PlayerCard({
   const yearsLeft = careerYearsLeft(player.age);
   const progress = careerProgress(player.age);
   const seasonYear = player.year;
+  const orgBalance = getTeamBalance(player.team);
 
   return (
     <aside
@@ -104,6 +106,10 @@ export function PlayerCard({
           <p className="truncate text-[10px] text-muted-foreground">
             Peak Premier {player.peakPremierRating.toLocaleString("es-AR")} ·{" "}
             {og.label}
+            {" · "}
+            <span title="Presión de la org: afecta minijuegos, riesgos y brackets">
+              {orgBalance.label}
+            </span>
           </p>
         </div>
         <RankBadges premierRating={player.premierRating} size="sm" />
@@ -179,7 +185,7 @@ export function PlayerCard({
         disabled={!onOpenCases || player.casesAvailable <= 0}
         onClick={onOpenCases}
         className={cn(
-          "flex w-full shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-2 text-left transition-colors",
+          "flex w-full shrink-0 touch-manipulation items-center gap-2.5 rounded-md border px-2.5 py-2.5 text-left transition-colors sm:py-2",
           player.casesAvailable > 0
             ? "border-amber-500/50 bg-amber-500/10 hover:border-amber-400/80 hover:bg-amber-500/15"
             : "border-border/60 bg-background/40 opacity-70",

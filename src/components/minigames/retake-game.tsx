@@ -134,8 +134,8 @@ export function RetakeGame({
   };
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between gap-2 text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 sm:gap-2">
+      <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-[12px]">
         <span>Retake clear</span>
         <div className="flex items-center gap-2">
           {started && <ShotResultPips results={results} />}
@@ -147,15 +147,15 @@ export function RetakeGame({
         </div>
       </div>
 
-      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
+      <p className="shrink-0 rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-[11px] text-muted-foreground sm:text-xs">
         Limpiá los{" "}
         <span className="font-semibold text-foreground">{targets}</span> ángulos
-        en orden (1 → {targets}). Click en el correcto; timer o ángulo mal =
+        en orden (1 → {targets}). Tocá el correcto; timer o ángulo mal =
         termina.
       </p>
 
       {!started ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
           <p className="max-w-sm text-center text-sm text-muted-foreground">
             Clear del site a contrarreloj. Tocá los ángulos en orden.
           </p>
@@ -164,7 +164,7 @@ export function RetakeGame({
           </Button>
         </div>
       ) : (
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-border/60 bg-[#0c121a]">
+        <div className="relative min-h-[180px] flex-1 touch-manipulation overflow-hidden rounded-lg border border-border/60 bg-[#0c121a]">
           {spots.map((spot) => (
             <button
               key={spot.id}
@@ -172,7 +172,7 @@ export function RetakeGame({
               disabled={spot.cleared || ended}
               onClick={() => clearTap(spot.id)}
               className={cn(
-                "absolute flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border text-sm font-black transition",
+                "absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border text-sm font-black transition sm:size-10",
                 spot.cleared
                   ? "border-primary/40 bg-primary/20 text-primary opacity-40"
                   : spot.id === nextId

@@ -46,15 +46,15 @@ export function EventCard({
         className,
       )}
     >
-      {/* Hero — half the panel */}
-      <div className="relative min-h-0 flex-1">
+      {/* Hero — shorter on phones so choices stay tappable */}
+      <div className="relative min-h-[110px] max-h-[34%] shrink-0 sm:min-h-0 sm:max-h-none sm:flex-1">
         <MapArt
           mapId={event.mapId}
           scene={event.scene ?? "map"}
           className="h-full w-full"
         />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
-          <div className="mb-1.5 flex items-center gap-1.5">
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-10 sm:p-4 sm:pt-12">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
             <span className="rounded bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-primary-foreground shadow-sm shadow-primary/40">
               {CATEGORY_LABELS[event.category]}
             </span>
@@ -64,24 +64,24 @@ export function EventCard({
               </span>
             )}
           </div>
-          <h2 className="text-2xl font-black uppercase leading-none tracking-tight drop-shadow-lg md:text-3xl">
+          <h2 className="text-xl font-black uppercase leading-none tracking-tight drop-shadow-lg sm:text-2xl md:text-3xl">
             {event.title}
           </h2>
         </div>
       </div>
 
-      {/* Options — half the panel; loader stays here so sidebar / map stay visible */}
-      <div className="relative flex min-h-0 flex-1 flex-col gap-2 border-t border-border/50 p-3">
+      {/* Options — scrollable on short viewports */}
+      <div className="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto border-t border-border/50 p-2.5 sm:p-3">
         {loading && <GameLoader compact />}
 
-        <p className="animate-fade-up shrink-0 text-sm leading-snug text-muted-foreground">
+        <p className="animate-fade-up shrink-0 text-[13px] leading-snug text-muted-foreground sm:text-sm">
           {event.description}
         </p>
 
         <div
           className="grid min-h-0 flex-1 gap-2"
           style={{
-            gridTemplateRows: `repeat(${event.options.length}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${event.options.length}, minmax(min(4.75rem, auto), 1fr))`,
           }}
         >
           {event.options.map((option, index) => (

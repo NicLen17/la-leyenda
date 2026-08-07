@@ -205,21 +205,64 @@ export function getTournamentById(id: string): Tournament | undefined {
   return TOURNAMENTS.find((tournament) => tournament.id === id);
 }
 
-/** Majors land roughly once per year (every second split). */
+/**
+ * Calendar by team tier, with progressive unlock inside the ladder:
+ * - T3: open qualifiers first; invite-style CCT/ESEA/Fissure as the career continues
+ * - T2: Challenger circuit; RMR returns every third split (Major pathway flavor)
+ * - T1: regular big events; Majors ~once a year (split % 4 === 3); Spodek/Cologne
+ *   only after enough ladder time so rookies on a hot desk don't open on a Major
+ */
 export function getSeasonTournament(tier: Tier, split: number): Tournament {
   const pool = TOURNAMENTS.filter((tournament) => tournament.tier === tier);
   if (pool.length === 0) {
     return TOURNAMENTS[0];
   }
 
-  if (tier === 1 && split % 4 === 3) {
+  const regular = pool
+    .filter((tournament) => !tournament.isMajor)
+    .sort((a, b) => a.prestige - b.prestige);
+
+  if (tier === 1 && split % 4 === 3 && split >= 5) {
     const majors = pool.filter((tournament) => tournament.isMajor);
     if (majors.length > 0) {
       return majors[Math.floor(split / 4) % majors.length];
     }
   }
 
-  const regular = pool.filter((tournament) => !tournament.isMajor);
-  const source = regular.length > 0 ? regular : pool;
-  return source[split % source.length];
+  if (tier === 3) {
+    // Unlock higher domestic invites as splits pile up (open → CCT → ESEA…).
+    const unlockCount = Math.min(
+      regular.length,
+      Math.max(2, 2 + Math.floor((split - 1) / 2)),
+    );
+    const band = regular.slice(0, unlockCount);
+    return band[(split - 1) % band.length] ?? regular[0];
+  }
+
+  if (tier === 2) {
+    // RMR every 3rd split once you've ground the ladder a bit.
+    if (split >= 3 && split % 3 === 0) {
+      const rmr = pool.find((tournament) => tournament.id === "rmr");
+      if (rmr) return rmr;
+    }
+    const withoutRmr = regular.filter((tournament) => tournament.id !== "rmr");
+    const source = withoutRmr.length > 0 ? withoutRmr : regular;
+    // Soft unlock: early T2 stays on lower prestige invites.
+    const unlockCount = Math.min(
+      source.length,
+      Math.max(3, 3 + Math.floor((split - 1) / 2)),
+    );
+    const band = source.slice(0, unlockCount);
+    return band[(split - 1) % band.length] ?? source[0];
+  }
+
+  // T1: Katowice / Cologne / BLAST WF require some career spine.
+  let source = regular;
+  if (split < 6) {
+    source = regular.filter((tournament) => tournament.prestige < 90);
+  } else if (split < 10) {
+    source = regular.filter((tournament) => tournament.prestige < 94);
+  }
+  if (source.length === 0) source = regular;
+  return source[(split - 1) % source.length] ?? source[0];
 }

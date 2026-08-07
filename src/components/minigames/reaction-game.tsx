@@ -199,7 +199,10 @@ export function ReactionGame({
   const progress = Math.max(0, Math.min(1, remainingMs / threshold));
   const secondsLeft = (remainingMs / 1000).toFixed(2);
   const urgent = stage === "peek" && remainingMs <= threshold * 0.35;
-  const crosshairSize = Math.max(180, Math.round(arenaSize * 0.72));
+  const crosshairSize = Math.max(
+    arenaSize < 280 ? 140 : 180,
+    Math.round(arenaSize * (arenaSize < 280 ? 0.55 : 0.72)),
+  );
 
   const showEnemy =
     stage === "peek" || (stage === "done" && reaction !== null);
@@ -285,7 +288,7 @@ export function ReactionGame({
             <>
               <span
                 className={cn(
-                  "font-mono text-5xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] sm:text-6xl",
+                  "font-mono text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] sm:text-5xl md:text-6xl",
                   urgent ? "text-destructive" : "text-[#7CFF6B]",
                 )}
               >

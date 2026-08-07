@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { CsCrosshairReticle } from "@/components/minigames/cs-crosshair";
 import { Button } from "@/components/ui/button";
+import { useCoarsePointer } from "@/lib/hooks/use-coarse-pointer";
 import { playReady, playUtilitySuccess } from "@/lib/audio/sounds";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,8 @@ type HoldGameProps = {
 type Point = { x: number; y: number };
 
 const ZONE_PAD = 8;
+/** Lift the reticle above the finger so the zone stays visible on touch. */
+const TOUCH_AIM_OFFSET_Y = 14;
 
 function clampZone(value: number, size: number) {
   const half = size / 2;
@@ -44,6 +47,8 @@ export function HoldGame({
   driftSpeed = 26,
   onComplete,
 }: HoldGameProps) {
+  const coarse = useCoarsePointer();
+  const playZone = coarse ? Math.max(zoneSize, 14) : zoneSize;
   const [started, setStarted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [cursor, setCursor] = useState<Point>({ x: 50, y: 50 });
@@ -54,9 +59,10 @@ export function HoldGame({
   const insideRef = useRef(false);
   const cursorRef = useRef<Point>({ x: 50, y: 50 });
   const zoneRef = useRef<Point>({ x: 50, y: 48 });
-  const targetRef = useRef<Point>(randomTarget(zoneSize));
+  const targetRef = useRef<Point>(randomTarget(playZone));
   const progressRef = useRef(0);
   const arenaRef = useRef<HTMLDivElement | null>(null);
+  const trackingRef = useRef(false);
 
   useEffect(() => {
     if (!started || finished.current) return;
@@ -71,7 +77,7 @@ export function HoldGame({
       last = now;
 
       if (now >= retargetAt) {
-        targetRef.current = randomTarget(zoneSize);
+        targetRef.current = randomTarget(playZone);
         retargetAt = now + 650 + Math.random() * 1100;
       }
 
@@ -85,15 +91,15 @@ export function HoldGame({
         // Ease toward the waypoint: faster when far, softer when close.
         const speed = driftSpeed * (0.55 + Math.min(1, dist / 28) * 0.7);
         const step = Math.min(dist, speed * dt);
-        pos.x = clampZone(pos.x + (dx / dist) * step, zoneSize);
-        pos.y = clampZone(pos.y + (dy / dist) * step, zoneSize);
+        pos.x = clampZone(pos.x + (dx / dist) * step, playZone);
+        pos.y = clampZone(pos.y + (dy / dist) * step, playZone);
         zoneRef.current = { x: pos.x, y: pos.y };
         setZone({ x: pos.x, y: pos.y });
       } else {
-        targetRef.current = randomTarget(zoneSize);
+        targetRef.current = randomTarget(playZone);
       }
 
-      const half = zoneSize / 2;
+      const half = playZone / 2;
       const cur = cursorRef.current;
       const hit =
         cur.x >= pos.x - half &&
@@ -123,16 +129,20 @@ export function HoldGame({
 
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [driftSpeed, holdSeconds, onComplete, started, zoneSize]);
+  }, [driftSpeed, holdSeconds, onComplete, playZone, started]);
 
-  const move = (clientX: number, clientY: number) => {
+  const move = (clientX: number, clientY: number, isTouch: boolean) => {
     const el = arenaRef.current;
     if (!el || finished.current) return;
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
+    const offsetY = isTouch || coarse ? TOUCH_AIM_OFFSET_Y : 0;
     const next = {
-      x: ((clientX - rect.left) / rect.width) * 100,
-      y: ((clientY - rect.top) / rect.height) * 100,
+      x: Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)),
+      y: Math.min(
+        100,
+        Math.max(0, ((clientY - rect.top) / rect.height) * 100 - offsetY),
+      ),
     };
     cursorRef.current = next;
     setCursor(next);
@@ -143,9 +153,10 @@ export function HoldGame({
     progressRef.current = 0;
     const startZone = { x: 50, y: 48 };
     zoneRef.current = startZone;
-    targetRef.current = randomTarget(zoneSize);
+    targetRef.current = randomTarget(playZone);
     cursorRef.current = { x: 50, y: 50 };
     insideRef.current = false;
+    trackingRef.current = false;
     setZone(startZone);
     setCursor({ x: 50, y: 50 });
     setProgress(0);
@@ -155,24 +166,26 @@ export function HoldGame({
   };
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex h-full min-h-0 flex-col gap-1.5 sm:gap-2">
+      <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-[12px]">
         <span>Hold de crosshair</span>
         <span className="tabular-nums">
           {Math.min(100, Math.round(progress))}%
         </span>
       </div>
 
-      <p className="rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-xs text-muted-foreground">
-        Seguí el ángulo con el mouse unos{" "}
+      <p className="shrink-0 rounded-md border border-border/50 bg-card/50 px-3 py-1.5 text-center text-[11px] text-muted-foreground sm:text-xs">
+        Seguí el ángulo con el{" "}
+        {coarse ? "dedo" : "mouse"} unos{" "}
         <span className="font-semibold text-foreground">
           {holdSeconds.toFixed(1)} s
         </span>
         . Si salís, la barra baja.
+        {coarse ? " La mira queda arriba del dedo." : null}
       </p>
 
       {!started ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border/60 bg-card p-4">
           <p className="max-w-sm text-center text-sm text-muted-foreground">
             El ángulo se mueve suave: trackealo sin perderlo hasta llenar la
             barra.
@@ -184,15 +197,37 @@ export function HoldGame({
       ) : (
         <div
           ref={arenaRef}
-          className="relative min-h-0 flex-1 cursor-none overflow-hidden rounded-lg border border-border/60 bg-[#0a1018]"
-          onPointerMove={(event) => move(event.clientX, event.clientY)}
-          onPointerDown={(event) => {
-            event.currentTarget.setPointerCapture(event.pointerId);
-            move(event.clientX, event.clientY);
+          className={cn(
+            "relative min-h-[180px] flex-1 overflow-hidden rounded-lg border border-border/60 bg-[#0a1018] touch-none select-none",
+            coarse ? "cursor-default" : "cursor-none",
+          )}
+          onPointerMove={(event) => {
+            if (!trackingRef.current && event.pointerType === "mouse") {
+              move(event.clientX, event.clientY, false);
+              return;
+            }
+            if (!trackingRef.current) return;
+            move(
+              event.clientX,
+              event.clientY,
+              event.pointerType !== "mouse",
+            );
           }}
-          onPointerLeave={() => {
-            insideRef.current = false;
-            setInside(false);
+          onPointerDown={(event) => {
+            event.preventDefault();
+            trackingRef.current = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            move(
+              event.clientX,
+              event.clientY,
+              event.pointerType !== "mouse",
+            );
+          }}
+          onPointerUp={() => {
+            trackingRef.current = false;
+          }}
+          onPointerCancel={() => {
+            trackingRef.current = false;
           }}
         >
           <div
@@ -203,15 +238,15 @@ export function HoldGame({
                 : "border-amber-400/70 bg-amber-400/10",
             )}
             style={{
-              width: `${zoneSize}%`,
-              height: `${zoneSize * 1.05}%`,
+              width: `${playZone}%`,
+              height: `${playZone * 1.05}%`,
               left: `${zone.x}%`,
               top: `${zone.y}%`,
               transform: "translate(-50%, -50%)",
             }}
           />
           <CsCrosshairReticle
-            size={20}
+            size={coarse ? 24 : 20}
             className="z-10"
             style={{ left: `${cursor.x}%`, top: `${cursor.y}%` }}
           />

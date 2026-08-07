@@ -140,7 +140,7 @@ export function RiskGauge({
             height={size}
             viewBox={`0 0 ${size} ${size}`}
             className={cn(
-              "transition-[filter] duration-300",
+              "h-auto w-full max-w-[min(220px,70vmin)] transition-[filter] duration-300",
               stage === "done" && success
                 ? "drop-shadow-[0_0_28px_rgba(56,189,248,0.55)]"
                 : stage === "done" && success === false

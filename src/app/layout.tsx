@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { GameProvider } from "@/lib/game/game-context";
 import {
   BACKGROUND_COLOR,
+  brandAsset,
   getSiteUrl,
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
@@ -61,7 +62,7 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: "/og.png",
+        url: brandAsset("/og.png"),
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_NAME} | ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
-    images: ["/og.png"],
+    images: [brandAsset("/og.png")],
   },
   appleWebApp: {
     capable: true,
@@ -81,26 +82,42 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     startupImage: [
       {
-        url: "/icons/apple-touch-icon.png",
+        url: brandAsset("/icons/apple-touch-icon.png"),
       },
     ],
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: brandAsset("/favicon.ico"), sizes: "any" },
+      {
+        url: brandAsset("/icons/favicon-16.png"),
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: brandAsset("/icons/favicon-32.png"),
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: brandAsset("/icons/icon-192.png"),
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: brandAsset("/icons/icon-512.png"),
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
     apple: [
       {
-        url: "/icons/apple-touch-icon.png",
+        url: brandAsset("/icons/apple-touch-icon.png"),
         sizes: "180x180",
         type: "image/png",
       },
     ],
-    shortcut: ["/favicon.ico"],
+    shortcut: [brandAsset("/favicon.ico")],
   },
   manifest: "/manifest.webmanifest",
   other: {
@@ -132,7 +149,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       >
         <GameProvider>
           <SiteHeader />
-          <main className="relative flex min-h-0 w-full flex-1 flex-col">
+          <main className="relative flex min-h-0 w-full flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
             {children}
           </main>
           <Toaster />

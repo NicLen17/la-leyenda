@@ -8,7 +8,7 @@ import {
 import { PRO_PLAYERS, ROOKIE_NICKS, ROOKIE_REAL_NAMES } from "@/lib/data/pros";
 import { caseIdForStoreItem, getStoreItem } from "@/lib/data/store";
 import { getStarterTeam } from "@/lib/data/teams";
-import { getSeasonTournament } from "@/lib/data/tournaments";
+import { getSeasonTournament, getTournamentById } from "@/lib/data/tournaments";
 import type {
   Archetype,
   AttributeKey,
@@ -76,6 +76,7 @@ import {
   simulateSeries,
   totalClutches,
 } from "./simulator";
+import { getTeamBalance } from "./team-context";
 
 function attributeEffect(key: AttributeKey, amount: number): StatEffects {
   return { [key]: amount } as StatEffects;
@@ -533,32 +534,89 @@ function resolveSeason(runtime: GameRuntime): GameRuntime {
     lastSeries: series,
   };
 
-  // Results → reputation & role security. Mechanics come from the box score.
-  const fameSwing =
+  // Results → reputation & role security. Org brand scales fame and bench heat.
+  const balance = getTeamBalance(state.team);
+  const rawFame =
     (series.won ? 10 : 0) +
     (series.isMajor && series.won ? 14 : 0) +
     (series.mvp ? 6 : 0) +
     Math.round((seasonRating - 1) * 22) +
     acesThisSplit * 2;
+  const fameSwing = Math.round(rawFame * (series.won ? balance.fameWinBoost : 1));
+
+  const formDelta =
+    seasonRating >= 1.1 + balance.heat * 0.04
+      ? 1
+      : seasonRating < 0.95 * balance.growthBar
+        ? -1
+        : 0;
+  const benchBase =
+    seasonRating < 0.95 * balance.growthBar
+      ? 14
+      : seasonRating > 1.12 + balance.heat * 0.05
+        ? -12
+        : -4;
+  const benchDelta = Math.round(benchBase * balance.benchSensitivity);
 
   state = applyEffects(state, {
     fame: fameSwing,
-    form: seasonRating >= 1.1 ? 1 : seasonRating < 0.95 ? -1 : 0,
-    benchRisk: seasonRating < 0.95 ? 14 : seasonRating > 1.12 ? -12 : -4,
+    form: formDelta,
+    benchRisk: benchDelta,
     ...seriesPerformanceGrowth(state, seasonRating, series, stats),
   });
 
   state.hltvTop20 = computeTop20(state);
 
-  // Auto-graffiti for milestone plays, the way Valve rewards iconic moments.
+  // Auto-graffiti for rare Valve-style milestones — needs stage weight, not open Q spam.
+  const tournamentMeta = getTournamentById(series.tournamentId);
+  const stageWeight =
+    series.isMajor || (tournamentMeta?.prestige ?? 0) >= 70
+      ? 2
+      : (tournamentMeta?.prestige ?? 0) >= 50
+        ? 1
+        : 0;
+
   const milestones: { id: string; earned: boolean }[] = [
-    { id: "gg-ace", earned: acesThisSplit > 0 },
+    // Ace on a real LAN / Challenger+ stage — not every open qualifier spray.
+    {
+      id: "gg-ace",
+      earned: acesThisSplit > 0 && (stageWeight >= 1 || series.isMajor),
+    },
     { id: "gg-major", earned: series.won && series.isMajor },
-    { id: "gg-comeback", earned: series.maps.some((map) => map.won && map.roundsLost >= 11) },
-    { id: "gg-awp", earned: state.role === "awp" && stats.multiKills.k4 >= 2 },
-    { id: "gg-entry", earned: state.role === "entry" && stats.openingKills >= 22 },
-    { id: "gg-utility", earned: stats.utilityDamage >= 900 },
-    { id: "gg-top20", earned: state.hltvTop20 !== null && state.hltvTop20 <= 10 },
+    // Comeback from 12+ — only when it mattered (Challenger+).
+    {
+      id: "gg-comeback",
+      earned:
+        stageWeight >= 1 &&
+        series.maps.some((map) => map.won && map.roundsLost >= 12),
+    },
+    {
+      id: "gg-awp",
+      earned:
+        state.role === "awp" &&
+        stats.multiKills.k4 + stats.multiKills.k5 >= 3 &&
+        stageWeight >= 1,
+    },
+    {
+      id: "gg-entry",
+      earned:
+        state.role === "entry" &&
+        stats.openingKills >= 24 &&
+        stageWeight >= 1,
+    },
+    {
+      id: "gg-utility",
+      earned: stats.utilityDamage >= 1_100 && stageWeight >= 1,
+    },
+    // Top 10 global year — needs renown, not only a hot split rating.
+    {
+      id: "gg-top20",
+      earned:
+        state.hltvTop20 !== null &&
+        state.hltvTop20 <= 10 &&
+        state.fame >= 55 &&
+        (state.trophies >= 1 || state.majors >= 1),
+    },
   ];
 
   for (const milestone of milestones) {
@@ -574,15 +632,16 @@ function resolveSeason(runtime: GameRuntime): GameRuntime {
     }
   }
 
-  // Benching happens when the risk piles up and the numbers back it.
-  if (state.benchRisk >= 75 && seasonRating < 1.0) {
+  // Benching: elite desks pull the plug earlier on dead form.
+  const benchThreshold = Math.round(78 - balance.heat * 12);
+  if (state.benchRisk >= benchThreshold && seasonRating < 1.0) {
     state.benched = true;
     state.seasonHighlights = pushHighlight(
       state.seasonHighlights,
       `${state.team.name} te manda al banco. La organización busca reemplazo.`,
       "bench",
     );
-  } else if (state.benched && seasonRating >= 1.05) {
+  } else if (state.benched && seasonRating >= 1.05 + balance.heat * 0.04) {
     state.benched = false;
   }
 

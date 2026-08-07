@@ -2,7 +2,6 @@
 
 import { TeamLogo } from "@/components/art/team-logo";
 import { AnimatedNumber } from "@/components/game/animated-number";
-import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/data/archetypes";
 import { evaluateMarketAccess } from "@/lib/game/market-gates";
 import { cn } from "@/lib/utils";
@@ -33,11 +32,11 @@ export function TransferMarket({
 
   return (
     <section className={cn("flex h-full min-h-0 flex-col gap-2", className)}>
-      <header className="shrink-0 space-y-1">
-        <h2 className="text-xl font-black uppercase leading-none tracking-tight">
+      <header className="shrink-0 space-y-1 px-0.5">
+        <h2 className="text-lg font-black uppercase leading-none tracking-tight sm:text-xl">
           Mercado de pases
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground sm:text-xs">
           Rating {access.rating.toFixed(2)} · skill {Math.round(access.skill)} ·
           fama {player.fame} · {player.majors} Major(s) — las orgs miran demos,
           no al agente.
@@ -46,28 +45,36 @@ export function TransferMarket({
           {access.label}
           <span className="font-normal text-muted-foreground">
             {" "}
-            · {access.nextStep}
+            · techo de scouting {access.maxPrestige} · {access.nextStep}
           </span>
         </p>
       </header>
 
-      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-0.5 sm:grid-cols-2 sm:pr-1 lg:grid-cols-3">
         {offers.map((offer, index) => {
           const isRenewal = offer.team.id === player.team.id;
           const isBest = offer.salaryMonthly === best;
+          const actionLabel = isRenewal ? "Renovar" : "Firmar";
 
           const { primary, secondary } = offer.team.colors;
 
           return (
-            <article
+            <button
               key={offer.team.id}
+              type="button"
+              onClick={() => onAccept(offer.team.id)}
+              aria-label={`${actionLabel} con ${offer.team.name} — $${offer.salaryMonthly.toLocaleString("es-AR")}/mes`}
               style={{
                 animationDelay: `${index * 55}ms`,
                 borderColor: isRenewal ? `${primary}99` : `${primary}40`,
                 background: `linear-gradient(155deg, ${secondary}f0 0%, ${secondary}cc 48%, ${primary}1f 100%)`,
                 boxShadow: `inset 0 1px 0 ${primary}33, 0 0 0 1px ${primary}14`,
               }}
-              className="animate-card-in relative flex flex-col gap-1.5 overflow-hidden rounded-lg border p-2.5"
+              className={cn(
+                "animate-card-in relative flex min-h-[11.5rem] touch-manipulation flex-col gap-1.5 overflow-hidden rounded-lg border p-3 text-left transition-all sm:min-h-0 sm:p-2.5",
+                "hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "active:translate-y-0 active:brightness-95",
+              )}
             >
               <div
                 className="pointer-events-none absolute inset-x-0 top-0 h-1"
@@ -81,18 +88,18 @@ export function TransferMarket({
               </div>
 
               <div className="relative flex items-center gap-2">
-                <TeamLogo team={offer.team} size={36} animate />
+                <TeamLogo team={offer.team} size={40} animate />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-black uppercase leading-none tracking-tight">
+                  <p className="truncate text-sm font-black uppercase leading-none tracking-tight sm:text-[13px]">
                     {offer.team.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
                     Tier {offer.team.tier} · Prestigio {offer.team.prestige}
                   </p>
                 </div>
                 {isRenewal && (
                   <span
-                    className="rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black"
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-black"
                     style={{ backgroundColor: primary }}
                   >
                     Renovación
@@ -106,7 +113,7 @@ export function TransferMarket({
                     value={offer.salaryMonthly}
                     grouped
                     prefix="$"
-                    className="text-lg font-black leading-none"
+                    className="text-xl font-black leading-none sm:text-lg"
                   />
                 </span>
                 <span className="text-[10px] text-muted-foreground">
@@ -143,19 +150,22 @@ export function TransferMarket({
                 )}
               </div>
 
-              <p className="relative text-[10px] leading-snug text-muted-foreground">
+              <p className="relative line-clamp-3 text-[11px] leading-snug text-muted-foreground sm:text-[10px]">
                 {offer.note}
               </p>
 
-              <Button
-                size="sm"
-                variant={isRenewal ? "default" : "secondary"}
-                className="relative mt-auto h-7 w-full text-[11px]"
-                onClick={() => onAccept(offer.team.id)}
+              <span
+                className={cn(
+                  "relative mt-auto flex h-10 w-full items-center justify-center rounded-lg text-xs font-bold sm:h-8 sm:text-[11px]",
+                  isRenewal
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground",
+                )}
+                aria-hidden
               >
-                {isRenewal ? "Renovar" : "Firmar"}
-              </Button>
-            </article>
+                {actionLabel}
+              </span>
+            </button>
           );
         })}
       </div>

@@ -144,7 +144,7 @@ export function ChoiceButton({
       onClick={() => onSelect(option.id)}
       style={{ animationDelay: `${index * 60}ms` }}
       className={cn(
-        "animate-card-in group relative box-border flex h-full w-full flex-col rounded-md border border-border/70 bg-card/70 px-3 py-2.5 text-left transition-all",
+        "animate-card-in group relative box-border flex h-full min-h-[4.5rem] w-full flex-col rounded-md border border-border/70 bg-card/70 px-2.5 py-2 text-left transition-all sm:min-h-0 sm:px-3 sm:py-2.5",
         "hover:-translate-y-0.5 hover:border-primary/70 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:pointer-events-none disabled:opacity-50",
         className,

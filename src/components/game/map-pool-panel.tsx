@@ -189,7 +189,7 @@ export function MapPoolPanel({
           type="button"
           onClick={() => setOpen(true)}
           className={cn(
-            "flex w-full items-center justify-between rounded-md border border-border/60 bg-background/50 px-2 py-1.5 text-left transition hover:border-primary/50",
+            "flex min-h-11 w-full touch-manipulation items-center justify-between rounded-md border border-border/60 bg-background/50 px-2.5 py-2 text-left transition hover:border-primary/50 sm:min-h-0 sm:px-2 sm:py-1.5",
             className,
           )}
         >
@@ -207,7 +207,7 @@ export function MapPoolPanel({
         </button>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md">
+          <DialogContent className="max-h-[min(88dvh,720px)] overflow-y-auto sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Mapas · Active Duty</DialogTitle>
             </DialogHeader>

@@ -103,24 +103,26 @@ export function CoinFlip({ onComplete }: CoinFlipProps) {
             <p className="text-center text-xs text-muted-foreground">
               Ganaron el knife round. Elegí con qué lado arrancan el mapa.
             </p>
-            <div className="flex gap-3">
+            <div className="flex w-full max-w-md flex-col gap-2 sm:flex-row sm:justify-center sm:gap-3">
               <Button
                 variant={choice === "ct" ? "default" : "secondary"}
                 disabled={flipping}
                 onClick={() => flip("ct")}
-                className="gap-2"
+                className="h-12 flex-1 gap-2 sm:h-10 sm:flex-none"
               >
                 <CtIcon className="h-5 w-5" />
-                Counter-Terrorists
+                <span className="sm:hidden">CT</span>
+                <span className="hidden sm:inline">Counter-Terrorists</span>
               </Button>
               <Button
                 variant={choice === "t" ? "default" : "secondary"}
                 disabled={flipping}
                 onClick={() => flip("t")}
-                className="gap-2"
+                className="h-12 flex-1 gap-2 sm:h-10 sm:flex-none"
               >
                 <TIcon className="h-5 w-5" />
-                Terrorists
+                <span className="sm:hidden">T</span>
+                <span className="hidden sm:inline">Terrorists</span>
               </Button>
             </div>
           </>

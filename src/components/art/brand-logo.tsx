@@ -1,46 +1,47 @@
-import Image from "next/image";
-
+import { brandAsset } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
-  /** Pixel size when not overridden by className sizing utilities. */
   size?: number;
   className?: string;
-  /** Prefer 256 for small UI, full logo for hero. */
+  /** @deprecated Both sizes use the same centered master crop. */
   variant?: "sm" | "lg";
   priority?: boolean;
 };
 
 /**
- * Circular brand mark: art is pre-centered + masked; CSS only frames with
- * primary border + glow and keeps the image perfectly centered.
+ * Brand mark shared by navbar, home hero, and any other UI surface.
+ * Always loads the same centered asset (version-busted for cache).
  */
 export function BrandLogo({
   size = 36,
   className,
-  variant = "sm",
   priority = false,
 }: BrandLogoProps) {
-  const src =
-    variant === "lg" ? "/brand/logo.webp" : "/brand/logo-256.webp";
-  const renderSize = Math.max(size, variant === "lg" ? 112 : 36);
+  // PNG keeps ring centering; webp lossy can nudge edge color detection/look.
+  const src = brandAsset(
+    size >= 96 ? "/brand/logo.png" : "/brand/logo-256.png",
+  );
 
   return (
     <span
       className={cn(
-        "relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full border border-primary/75 bg-black/40 shadow-[0_0_0_1px_rgba(232,163,23,0.14),0_0_16px_rgba(232,163,23,0.4),0_0_32px_rgba(232,163,23,0.16)]",
+        "relative block shrink-0 overflow-hidden rounded-full border border-primary/80 bg-black/50",
+        "shadow-[0_0_0_1px_rgba(232,163,23,0.16),0_0_16px_rgba(232,163,23,0.42),0_0_32px_rgba(232,163,23,0.18)]",
         className,
       )}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, maxWidth: "100%" }}
     >
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element -- circular crop; avoid next/image layout quirks */}
+      <img
         src={src}
         alt="La Leyenda"
-        width={renderSize}
-        height={renderSize}
-        priority={priority}
+        width={size}
+        height={size}
+        decoding="async"
+        fetchPriority={priority ? "high" : "auto"}
         draggable={false}
-        className="pointer-events-none block h-full w-full max-w-none select-none object-contain object-center"
+        className="pointer-events-none absolute inset-0 block size-full max-w-none select-none object-cover object-center"
       />
     </span>
   );
