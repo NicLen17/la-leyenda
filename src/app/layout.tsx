@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 
 import { SiteHeader } from "@/components/game/site-header";
 import { PwaRegister } from "@/components/pwa-register";
@@ -136,6 +137,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </main>
           <Toaster />
           <PwaRegister />
+          <Analytics />
         </GameProvider>
       </body>
     </html>

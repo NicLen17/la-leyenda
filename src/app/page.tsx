@@ -22,14 +22,16 @@ export default function HomePage() {
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[720px] flex-1 flex-col items-center justify-center px-4 py-4">
         <div className="flex w-full flex-col items-center gap-2">
           <div className="animate-hero-brand text-center">
-            <Image
-              src="/brand/logo.webp"
-              alt="La Leyenda"
-              width={112}
-              height={112}
-              priority
-              className="mx-auto size-[clamp(4.5rem,14vw,7rem)] drop-shadow-[0_12px_40px_rgba(245,158,11,0.35)]"
-            />
+            <span className="mx-auto flex size-[clamp(4.5rem,14vw,7rem)] items-center justify-center rounded-full border border-primary/70 bg-black/30 p-[3px] shadow-[0_0_0_1px_rgba(232,163,23,0.12),0_0_24px_rgba(232,163,23,0.32),0_12px_40px_rgba(0,0,0,0.55)]">
+              <Image
+                src="/brand/logo.webp"
+                alt="La Leyenda"
+                width={112}
+                height={112}
+                priority
+                className="size-full rounded-full object-cover object-center"
+              />
+            </span>
             <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.42em] text-primary">
               Counter-Strike 2
             </p>

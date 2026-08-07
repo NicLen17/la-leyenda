@@ -24,19 +24,24 @@ async function ensureDir(dir) {
 /**
  * @param {Buffer} trimmed
  * @param {number} size
- * @param {{ maskable?: boolean; bg?: { r: number; g: number; b: number; alpha: number } | null }} opts
+ * @param {{ maskable?: boolean; bg?: { r: number; g: number; b: number; alpha: number } | null; fill?: number }} opts
  */
 async function square(trimmed, size, opts = {}) {
-  const { maskable = false, bg = null } = opts;
-  const padRatio = maskable ? 0.2 : 0.06;
+  const { maskable = false, bg = null, fill = 0.94 } = opts;
+  // maskable needs safe zone; UI logos fill tighter so the badge isn't floating
+  const padRatio = maskable ? 0.2 : Math.max(0, 1 - fill);
   const content = Math.round(size * (1 - padRatio));
   const logo = await sharp(trimmed)
     .resize(content, content, {
       fit: "contain",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
+    .ensureAlpha()
     .png()
     .toBuffer();
+
+  // Punch transparent corners: original art has a dark square plate behind the circle
+  const masked = await applyCircularMask(logo);
 
   const background = bg
     ? { r: bg.r, g: bg.g, b: bg.b, alpha: bg.alpha ?? 1 }
@@ -50,8 +55,43 @@ async function square(trimmed, size, opts = {}) {
       background,
     },
   })
-    .composite([{ input: logo, gravity: "centre" }])
+    .composite([{ input: masked, gravity: "centre" }])
     .png({ compressionLevel: 9, effort: 10 })
+    .toBuffer();
+}
+
+/**
+ * Keep only the circular badge; drop opaque square plate outside the ring.
+ * @param {Buffer} png
+ */
+async function applyCircularMask(png) {
+  const meta = await sharp(png).metadata();
+  const w = meta.width ?? 1;
+  const h = meta.height ?? 1;
+  const r = Math.min(w, h) / 2;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // Soft edge ~1px so the ring isn't harsh against page bg
+  const soft = Math.max(1, Math.round(Math.min(w, h) * 0.004));
+  const svg = Buffer.from(
+    `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="m" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff"/>
+          <stop offset="${((r - soft) / r) * 100}%" stop-color="#fff"/>
+          <stop offset="100%" stop-color="#000"/>
+        </radialGradient>
+      </defs>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#m)"/>
+    </svg>`,
+  );
+
+  // destination-in keeps source where mask is opaque
+  return sharp(png)
+    .ensureAlpha()
+    .composite([{ input: svg, blend: "dest-in" }])
+    .png()
     .toBuffer();
 }
 
